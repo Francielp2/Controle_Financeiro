@@ -8,11 +8,9 @@ Este repositório contém a estrutura inicial da aplicação Django, a configura
 
 - [Sobre o projeto](#sobre-o-projeto)
 - [Tecnologias utilizadas](#tecnologias-utilizadas)
-- [Funcionalidades previstas](#funcionalidades-previstas)
 - [Pré-requisitos](#pré-requisitos)
 - [Como executar o projeto](#como-executar-o-projeto)
 - [Acesso ao painel administrativo](#acesso-ao-painel-administrativo)
-- [Estrutura do projeto](#estrutura-do-projeto)
 - [Documentação técnica](#documentação-técnica)
 - [Comandos úteis](#comandos-úteis)
 - [Boas práticas de configuração](#boas-práticas-de-configuração)
@@ -38,19 +36,6 @@ No estado atual, o projeto possui:
 - Git
 - GitHub
 
-## Funcionalidades previstas
-
-O sistema foi planejado para apoiar o gerenciamento de finanças pessoais. As funcionalidades esperadas para evolução do projeto incluem:
-
-- Cadastro e autenticação de usuários.
-- Registro de receitas.
-- Registro de despesas.
-- Classificação de movimentações por categoria.
-- Consulta de saldo financeiro.
-- Visualização de histórico financeiro.
-- Relatórios e indicadores de receitas e despesas.
-- Administração dos dados pelo painel administrativo do Django.
-
 ## Pré-requisitos
 
 Antes de executar o projeto, verifique se você possui os seguintes itens instalados:
@@ -71,7 +56,7 @@ git clone URL_DO_REPOSITORIO
 Acesse a pasta do projeto:
 
 ```bash
-cd Projeto_Final_PSW_Controle_Financeiro
+cd Controle_Financeiro
 ```
 
 Crie um ambiente virtual:
@@ -137,34 +122,6 @@ python manage.py createsuperuser
 ```
 
 Informe usuário, e-mail e senha quando solicitado. Depois, execute o servidor e acesse `/admin/`.
-
-## Estrutura do projeto
-
-```text
-Projeto_Final_PSW_Controle_Financeiro/
-├── config/
-│   ├── __init__.py
-│   ├── asgi.py
-│   ├── settings.py
-│   ├── urls.py
-│   └── wsgi.py
-├── docs/
-│   └── diagramas/
-├── manage.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-└── README.md
-```
-
-Principais arquivos:
-
-- `manage.py`: utilitário de linha de comando do Django.
-- `config/settings.py`: configurações principais do projeto.
-- `config/urls.py`: configuração das rotas da aplicação.
-- `requirements.txt`: dependências necessárias para executar o projeto.
-- `.env.example`: modelo para variáveis de ambiente.
-- `docs/diagramas/`: diagramas técnicos do sistema.
 
 ## Documentação técnica
 
