@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     # Meus apps
     'core',
     'usuarios',
+    'financeiro',
 
 ]
 
