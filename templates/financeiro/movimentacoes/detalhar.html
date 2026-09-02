@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da movimentação{% endblock %}
+
+{% block content %}
+    <h2>Movimentação {{ movimentacao.pk }}</h2>
+
+    <p><strong>Usuário:</strong> {{ movimentacao.usuario }}</p>
+    <p><strong>Tipo:</strong> {{ movimentacao.get_tipo_display }}</p>
+    <p><strong>Valor:</strong> R$ {{ movimentacao.valor }}</p>
+    <p><strong>Descrição:</strong> {{ movimentacao.descricao|default:"-" }}</p>
+    <p><strong>Data:</strong> {{ movimentacao.data }}</p>
+    <p><strong>Hora:</strong> {{ movimentacao.hora }}</p>
+    <p><strong>Origem:</strong> {{ movimentacao.conta_origem|default:"-" }}</p>
+    <p><strong>Destino:</strong> {{ movimentacao.conta_destino|default:"-" }}</p>
+    <p><strong>Categoria:</strong> {{ movimentacao.categoria|default:"-" }}</p>
+    <p>
+        <strong>Compromisso:</strong>
+        {{ movimentacao.compromisso_financeiro|default:"-" }}
+    </p>
+    <p><strong>Criada em:</strong> {{ movimentacao.criado_em }}</p>
+    <p><strong>Atualizada em:</strong> {{ movimentacao.atualizado_em }}</p>
+
+    <p>
+        <a href="{% url 'financeiro:movimentacao_editar' movimentacao.pk %}">
+            Editar
+        </a>
+        <a href="{% url 'financeiro:movimentacao_excluir' movimentacao.pk %}">
+            Excluir
+        </a>
+        <a href="{% url 'financeiro:movimentacao_listar' %}">Voltar</a>
+    </p>
+{% endblock %}

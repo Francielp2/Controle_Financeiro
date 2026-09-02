@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Compromissos{% endblock %}
+
+{% block content %}
+    <h2>Compromissos financeiros</h2>
+
+    <p>
+        <a href="{% url 'financeiro:compromisso_criar' %}">
+            Cadastrar compromisso
+        </a>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Título</th>
+                <th>Usuário</th>
+                <th>Tipo</th>
+                <th>Total</th>
+                <th>Restante</th>
+                <th>Vencimento</th>
+                <th>Status</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for compromisso in compromissos %}
+                <tr>
+                    <td>{{ compromisso.titulo }}</td>
+                    <td>{{ compromisso.usuario }}</td>
+                    <td>{{ compromisso.get_tipo_display }}</td>
+                    <td>R$ {{ compromisso.valor_total }}</td>
+                    <td>R$ {{ compromisso.valor_restante }}</td>
+                    <td>{{ compromisso.data_vencimento }}</td>
+                    <td>{{ compromisso.get_status_display }}</td>
+                    <td>
+                        <a href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">
+                            Detalhes
+                        </a>
+                        <a href="{% url 'financeiro:compromisso_editar' compromisso.pk %}">
+                            Editar
+                        </a>
+                        <a href="{% url 'financeiro:compromisso_excluir' compromisso.pk %}">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="8">Nenhum compromisso cadastrado.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

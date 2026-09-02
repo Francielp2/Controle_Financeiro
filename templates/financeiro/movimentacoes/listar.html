@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Movimentações{% endblock %}
+
+{% block content %}
+    <h2>Movimentações</h2>
+
+    <p>
+        <a href="{% url 'financeiro:movimentacao_criar' %}">
+            Cadastrar movimentação
+        </a>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuário</th>
+                <th>Tipo</th>
+                <th>Valor</th>
+                <th>Origem</th>
+                <th>Destino</th>
+                <th>Categoria</th>
+                <th>Data</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for movimentacao in movimentacoes %}
+                <tr>
+                    <td>{{ movimentacao.pk }}</td>
+                    <td>{{ movimentacao.usuario }}</td>
+                    <td>{{ movimentacao.get_tipo_display }}</td>
+                    <td>R$ {{ movimentacao.valor }}</td>
+                    <td>{{ movimentacao.conta_origem|default:"-" }}</td>
+                    <td>{{ movimentacao.conta_destino|default:"-" }}</td>
+                    <td>{{ movimentacao.categoria|default:"-" }}</td>
+                    <td>{{ movimentacao.data }}</td>
+                    <td>
+                        <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
+                            Detalhes
+                        </a>
+                        <a href="{% url 'financeiro:movimentacao_editar' movimentacao.pk %}">
+                            Editar
+                        </a>
+                        <a href="{% url 'financeiro:movimentacao_excluir' movimentacao.pk %}">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="9">Nenhuma movimentação cadastrada.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

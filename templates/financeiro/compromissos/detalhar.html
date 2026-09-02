@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes do compromisso{% endblock %}
+
+{% block content %}
+    <h2>{{ compromisso.titulo }}</h2>
+
+    <p><strong>Usuário:</strong> {{ compromisso.usuario }}</p>
+    <p><strong>Pessoa:</strong> {{ compromisso.pessoa|default:"-" }}</p>
+    <p><strong>Tipo:</strong> {{ compromisso.get_tipo_display }}</p>
+    <p><strong>Conta:</strong> {{ compromisso.conta|default:"-" }}</p>
+    <p><strong>Categoria:</strong> {{ compromisso.categoria|default:"-" }}</p>
+    <p><strong>Descrição:</strong> {{ compromisso.descricao|default:"-" }}</p>
+    <p><strong>Valor total:</strong> R$ {{ compromisso.valor_total }}</p>
+    <p>
+        <strong>Pago/recebido:</strong>
+        R$ {{ compromisso.valor_pago_recebido }}
+    </p>
+    <p><strong>Restante:</strong> R$ {{ compromisso.valor_restante }}</p>
+    <p><strong>Vencimento:</strong> {{ compromisso.data_vencimento }}</p>
+    <p><strong>Status:</strong> {{ compromisso.get_status_display }}</p>
+
+    <p>
+        <a href="{% url 'financeiro:compromisso_editar' compromisso.pk %}">
+            Editar
+        </a>
+        <a href="{% url 'financeiro:compromisso_excluir' compromisso.pk %}">
+            Excluir
+        </a>
+        <a href="{% url 'financeiro:compromisso_listar' %}">Voltar</a>
+    </p>
+
+    <h3>Movimentações vinculadas</h3>
+
+    <ul>
+        {% for movimentacao in movimentacoes %}
+            <li>
+                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
+                    {{ movimentacao }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Nenhuma movimentação vinculada.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
