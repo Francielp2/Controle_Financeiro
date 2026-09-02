@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes do usuário{% endblock %}
+
+{% block content %}
+    <h2>Detalhes do usuário</h2>
+
+    <p><strong>ID:</strong> {{ usuario.pk }}</p>
+    <p><strong>Nome:</strong> {{ usuario.get_full_name|default:"-" }}</p>
+    <p><strong>E-mail:</strong> {{ usuario.email }}</p>
+    <p><strong>CPF:</strong> {{ usuario.cpf }}</p>
+    <p><strong>RG:</strong> {{ usuario.rg }}</p>
+    <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
+
+    <p class="acoes">
+        <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
+            Editar
+        </a>
+        <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">
+            Excluir
+        </a>
+        <a href="{% url 'usuarios:usuario_listar' %}">
+            Voltar
+        </a>
+    </p>
+
+    <h3>Contas</h3>
+
+    <ul>
+        {% for conta in contas %}
+            <li>
+                <a href="{% url 'financeiro:conta_detalhar' conta.pk %}">
+                    {{ conta.nome }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Nenhuma conta cadastrada.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Categorias</h3>
+
+    <ul>
+        {% for categoria in categorias %}
+            <li>
+                <a href="{% url 'financeiro:categoria_detalhar' categoria.pk %}">
+                    {{ categoria }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Nenhuma categoria cadastrada.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Compromissos</h3>
+
+    <ul>
+        {% for compromisso in compromissos %}
+            <li>
+                <a href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">
+                    {{ compromisso }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Nenhum compromisso cadastrado.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Últimas movimentações</h3>
+
+    <ul>
+        {% for movimentacao in movimentacoes %}
+            <li>
+                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
+                    {{ movimentacao }}
+                </a>
+            </li>
+        {% empty %}
+            <li>Nenhuma movimentação cadastrada.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

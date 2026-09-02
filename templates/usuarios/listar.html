@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Usuários{% endblock %}
+
+{% block content %}
+    <h2>Usuários</h2>
+
+    <p>
+        <a href="{% url 'usuarios:usuario_criar' %}">
+            Cadastrar usuário
+        </a>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>CPF</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.pk }}</td>
+                    <td>{{ usuario.get_full_name|default:"-" }}</td>
+                    <td>{{ usuario.email }}</td>
+                    <td>{{ usuario.cpf }}</td>
+                    <td>{{ usuario.telefone }}</td>
+                    <td class="acoes">
+                        <a href="{% url 'usuarios:usuario_detalhar' usuario.pk %}">
+                            Detalhes
+                        </a>
+                        <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
+                            Editar
+                        </a>
+                        <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="6">Nenhum usuário cadastrado.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

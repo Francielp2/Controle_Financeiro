@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Contas{% endblock %}
+
+{% block content %}
+    <h2>Contas</h2>
+
+    <p>
+        <a href="{% url 'financeiro:conta_criar' %}">
+            Cadastrar conta
+        </a>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Usuário</th>
+                <th>Tipo</th>
+                <th>Saldo inicial</th>
+                <th>Saldo atual</th>
+                <th>Ativa</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for conta in contas %}
+                <tr>
+                    <td>{{ conta.nome }}</td>
+                    <td>{{ conta.usuario }}</td>
+                    <td>{{ conta.get_tipo_display }}</td>
+                    <td>R$ {{ conta.saldo_inicial }}</td>
+                    <td>R$ {{ conta.saldo_atual }}</td>
+                    <td>{{ conta.ativa|yesno:"Sim,Não" }}</td>
+                    <td>
+                        <a href="{% url 'financeiro:conta_detalhar' conta.pk %}">
+                            Detalhes
+                        </a>
+                        <a href="{% url 'financeiro:conta_editar' conta.pk %}">
+                            Editar
+                        </a>
+                        <a href="{% url 'financeiro:conta_excluir' conta.pk %}">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">Nenhuma conta cadastrada.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

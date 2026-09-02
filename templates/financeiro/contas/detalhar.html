@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da conta{% endblock %}
+
+{% block content %}
+    <h2>{{ conta.nome }}</h2>
+
+    <p><strong>Usuário:</strong> {{ conta.usuario }}</p>
+    <p><strong>Tipo:</strong> {{ conta.get_tipo_display }}</p>
+    <p><strong>Saldo inicial:</strong> R$ {{ conta.saldo_inicial }}</p>
+    <p><strong>Saldo atual:</strong> R$ {{ conta.saldo_atual }}</p>
+    <p><strong>Ativa:</strong> {{ conta.ativa|yesno:"Sim,Não" }}</p>
+    <p><strong>Criada em:</strong> {{ conta.data_criacao }}</p>
+
+    <p>
+        <a href="{% url 'financeiro:conta_editar' conta.pk %}">Editar</a>
+        <a href="{% url 'financeiro:conta_excluir' conta.pk %}">Excluir</a>
+        <a href="{% url 'financeiro:conta_listar' %}">Voltar</a>
+    </p>
+
+    <h3>Movimentações relacionadas</h3>
+
+    <ul>
+        {% for movimentacao in movimentacoes %}
+            <li>
+                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
+                    {{ movimentacao }}
+                </a>
+                — {{ movimentacao.data }}
+            </li>
+        {% empty %}
+            <li>Nenhuma movimentação.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
