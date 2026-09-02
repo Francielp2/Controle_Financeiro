@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da categoria{% endblock %}
+
+{% block content %}
+    <h2>{{ categoria.nome }}</h2>
+
+    <p><strong>Usuário:</strong> {{ categoria.usuario }}</p>
+    <p><strong>Tipo:</strong> {{ categoria.get_tipo_display }}</p>
+    <p><strong>Descrição:</strong> {{ categoria.descricao|default:"-" }}</p>
+    <p><strong>Ativa:</strong> {{ categoria.ativa|yesno:"Sim,Não" }}</p>
+
+    <p>
+        <a href="{% url 'financeiro:categoria_editar' categoria.pk %}">
+            Editar
+        </a>
+        <a href="{% url 'financeiro:categoria_excluir' categoria.pk %}">
+            Excluir
+        </a>
+        <a href="{% url 'financeiro:categoria_listar' %}">Voltar</a>
+    </p>
+
+    <h3>Movimentações</h3>
+
+    <ul>
+        {% for movimentacao in movimentacoes %}
+            <li>{{ movimentacao }}</li>
+        {% empty %}
+            <li>Nenhuma movimentação.</li>
+        {% endfor %}
+    </ul>
+
+    <h3>Compromissos</h3>
+
+    <ul>
+        {% for compromisso in compromissos %}
+            <li>{{ compromisso }}</li>
+        {% empty %}
+            <li>Nenhum compromisso.</li>
+        {% endfor %}
+    </ul>
+{% endblock %}

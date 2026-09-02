@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from financeiro import views
 
 
 app_name = "financeiro"
@@ -39,5 +39,32 @@ urlpatterns = [
         "contas/<int:pk>/excluir/",
         views.conta_excluir,
         name="conta_excluir",
-    ) 
+    ),
+
+    # ROTAS DE CATEGORIAS
+    path(
+        "categorias/",
+        views.categoria_listar,
+        name="categoria_listar",
+    ),
+    path(
+        "categorias/criar/",
+        views.categoria_criar,
+        name="categoria_criar",
+    ),
+    path(
+        "categorias/<int:pk>/",
+        views.categoria_detalhar,
+        name="categoria_detalhar",
+    ),
+    path(
+        "categorias/<int:pk>/editar/",
+        views.categoria_editar,
+        name="categoria_editar",
+    ),
+    path(
+        "categorias/<int:pk>/excluir/",
+        views.categoria_excluir,
+        name="categoria_excluir",
+    ),
 ]

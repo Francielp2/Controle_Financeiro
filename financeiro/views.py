@@ -10,6 +10,7 @@ from django.urls import reverse
 
 from .forms import (
     ContaForm,
+    CategoriaForm,
 )
 from .models import (
     Categoria,
@@ -186,6 +187,158 @@ def conta_excluir(request, pk):
             "cancelar_url": reverse(
                 "financeiro:conta_detalhar",
                 args=[conta.pk],
+            ),
+        },
+    )
+
+# -------------------------
+# CRUD DE CATEGORIAS
+# -------------------------
+
+
+# LISTA AS CATEGORIAS CADASTRADAS
+def categoria_listar(request):
+    categorias = Categoria.objects.select_related("usuario").order_by(
+        "usuario__email",
+        "nome",
+    )
+
+    return render(
+        request,
+        "financeiro/categorias/listar.html",
+        {"categorias": categorias},
+    )
+
+
+# DETALHA UMA CATEGORIA
+def categoria_detalhar(request, pk):
+    categoria = get_object_or_404(
+        Categoria.objects.select_related("usuario"),
+        pk=pk,
+    )
+
+    return render(
+        request,
+        "financeiro/categorias/detalhar.html",
+        {
+            "categoria": categoria,
+            "movimentacoes": categoria.movimentacoes.all().order_by(
+                "-data",
+                "-hora",
+            ),
+            "compromissos": categoria.compromissos.all().order_by(
+                "-data_vencimento"
+            ),
+        },
+    )
+
+
+# CRIA UMA CATEGORIA
+def categoria_criar(request):
+    if request.method == "POST":
+        form = CategoriaForm(request.POST)
+
+        if form.is_valid():
+            categoria = form.save()
+
+            messages.success(
+                request,
+                "Categoria cadastrada com sucesso.",
+            )
+
+            return redirect(
+                "financeiro:categoria_detalhar",
+                pk=categoria.pk,
+            )
+    else:
+        form = CategoriaForm()
+
+    return render(
+        request,
+        "form.html",
+        {
+            "titulo": "Cadastrar categoria",
+            "form": form,
+            "cancelar_url": reverse("financeiro:categoria_listar"),
+        },
+    )
+
+
+# EDITA UMA CATEGORIA
+def categoria_editar(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+
+    if request.method == "POST":
+        form = CategoriaForm(
+            request.POST,
+            instance=categoria,
+        )
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                "Categoria atualizada com sucesso.",
+            )
+
+            return redirect(
+                "financeiro:categoria_detalhar",
+                pk=categoria.pk,
+            )
+    else:
+        form = CategoriaForm(instance=categoria)
+
+    return render(
+        request,
+        "form.html",
+        {
+            "titulo": "Editar categoria",
+            "form": form,
+            "cancelar_url": reverse(
+                "financeiro:categoria_detalhar",
+                args=[categoria.pk],
+            ),
+        },
+    )
+
+
+# EXCLUI UMA CATEGORIA
+def categoria_excluir(request, pk):
+    categoria = get_object_or_404(Categoria, pk=pk)
+
+    if request.method == "POST":
+        try:
+            categoria.delete()
+
+            messages.success(
+                request,
+                "Categoria excluída com sucesso.",
+            )
+
+            return redirect("financeiro:categoria_listar")
+
+        except ProtectedError:
+            messages.error(
+                request,
+                "A categoria não pode ser excluída porque "
+                "possui registros relacionados.",
+            )
+
+            return redirect(
+                "financeiro:categoria_detalhar",
+                pk=categoria.pk,
+            )
+
+    return render(
+        request,
+        "confirmar_exclusao.html",
+        {
+            "titulo": "Excluir categoria",
+            "objeto": categoria,
+            "cancelar_url": reverse(
+                "financeiro:categoria_detalhar",
+                args=[categoria.pk],
             ),
         },
     )

@@ -2,6 +2,7 @@ from django import forms
 
 from .models import (
     Conta,
+    Categoria,
 )
 
 
@@ -15,5 +16,20 @@ class ContaForm(forms.ModelForm):
             "nome",
             "tipo",
             "saldo_inicial",
+            "ativa",
+        )
+
+# FORMULARIO DE CATEGORIAS
+
+
+class CategoriaForm(forms.ModelForm):
+    # CONFIGURACAO DO MODELO CATEGORIA
+    class Meta:
+        model = Categoria
+        fields = (
+            "usuario",
+            "nome",
+            "descricao",
+            "tipo",
             "ativa",
         )

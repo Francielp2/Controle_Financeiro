@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Categorias{% endblock %}
+
+{% block content %}
+    <h2>Categorias</h2>
+
+    <p>
+        <a href="{% url 'financeiro:categoria_criar' %}">
+            Cadastrar categoria
+        </a>
+    </p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Usuário</th>
+                <th>Tipo</th>
+                <th>Ativa</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for categoria in categorias %}
+                <tr>
+                    <td>{{ categoria.nome }}</td>
+                    <td>{{ categoria.usuario }}</td>
+                    <td>{{ categoria.get_tipo_display }}</td>
+                    <td>{{ categoria.ativa|yesno:"Sim,Não" }}</td>
+                    <td>
+                        <a href="{% url 'financeiro:categoria_detalhar' categoria.pk %}">
+                            Detalhes
+                        </a>
+                        <a href="{% url 'financeiro:categoria_editar' categoria.pk %}">
+                            Editar
+                        </a>
+                        <a href="{% url 'financeiro:categoria_excluir' categoria.pk %}">
+                            Excluir
+                        </a>
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="5">Nenhuma categoria cadastrada.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
