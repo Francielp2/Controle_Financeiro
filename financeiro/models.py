@@ -459,6 +459,14 @@ class Movimentacao(models.Model):
         auto_now=True,
     )
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(valor__gt=0),
+                name="movimentacao_valor_positivo",
+            ),
+        ]
+
     # VALIDA REGRAS DE TRANSFERENCIA
     def validar_transferencia(self):
         if not self.conta_origem:
@@ -505,6 +513,97 @@ class Movimentacao(models.Model):
 
         if saldo_disponivel < self.valor:
             raise ValidationError({"valor": "Saldo insuficiente na conta de origem."})
+
+    # VALIDA COMPROMISSO FINANCEIRO VINCULADO
+    def validar_compromisso_financeiro(self):
+        if not self.compromisso_financeiro_id:
+            return
+
+        compromisso = self.compromisso_financeiro
+
+        if compromisso.usuario_id != self.usuario_id:
+            raise ValidationError(
+                {
+                    "compromisso_financeiro": (
+                        "O compromisso deve pertencer ao mesmo usuário."
+                    )
+                }
+            )
+
+        if self.tipo == self.Tipo.TRANSFERENCIA:
+            raise ValidationError(
+                {
+                    "compromisso_financeiro": (
+                        "Transferências não possuem compromisso financeiro."
+                    )
+                }
+            )
+
+        if (
+            self.tipo == self.Tipo.ENTRADA
+            and compromisso.tipo != CompromissoFinanceiro.Tipo.RECEBER
+        ):
+            raise ValidationError(
+                {
+                    "compromisso_financeiro": (
+                        "Entradas devem estar ligadas a compromissos a receber."
+                    )
+                }
+            )
+
+        if (
+            self.tipo == self.Tipo.SAIDA
+            and compromisso.tipo != CompromissoFinanceiro.Tipo.PAGAR
+        ):
+            raise ValidationError(
+                {
+                    "compromisso_financeiro": (
+                        "Saídas devem estar ligadas a compromissos a pagar."
+                    )
+                }
+            )
+
+        if (
+            self.categoria_id
+            and compromisso.categoria_id
+            and self.categoria_id != compromisso.categoria_id
+        ):
+            raise ValidationError(
+                {
+                    "categoria": (
+                        "A categoria deve ser a mesma do compromisso financeiro."
+                    )
+                }
+            )
+
+        if not compromisso.conta_id:
+            return
+
+        if (
+            self.tipo == self.Tipo.ENTRADA
+            and self.conta_destino_id
+            and self.conta_destino_id != compromisso.conta_id
+        ):
+            raise ValidationError(
+                {
+                    "conta_destino": (
+                        "A conta de destino deve ser a mesma do compromisso financeiro."
+                    )
+                }
+            )
+
+        if (
+            self.tipo == self.Tipo.SAIDA
+            and self.conta_origem_id
+            and self.conta_origem_id != compromisso.conta_id
+        ):
+            raise ValidationError(
+                {
+                    "conta_origem": (
+                        "A conta de origem deve ser a mesma do compromisso financeiro."
+                    )
+                }
+            )
 
     # VALIDA REGRAS DA MOVIMENTACAO
     def clean(self):
@@ -592,6 +691,8 @@ class Movimentacao(models.Model):
         elif self.tipo == self.Tipo.TRANSFERENCIA:
             self.validar_transferencia()
             self.validar_saldo()
+
+        self.validar_compromisso_financeiro()
 
     # SALVA A MOVIMENTACAO APOS VALIDACAO
     def save(self, *args, **kwargs):
