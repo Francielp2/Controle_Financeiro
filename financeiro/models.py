@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Sum
+from django.db.models.functions import Lower
 from django.utils import timezone
 
 from usuarios.models import Usuario
@@ -43,6 +44,15 @@ class Conta(models.Model):
     data_criacao = models.DateTimeField(
         auto_now_add=True,
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                "usuario",
+                Lower("nome"),
+                name="conta_usuario_nome_unico",
+            ),
+        ]
 
     # CALCULA O SALDO ATUAL DA CONTA
     @property
@@ -122,6 +132,16 @@ class Categoria(models.Model):
     data_criacao = models.DateTimeField(
         auto_now_add=True,
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                "usuario",
+                Lower("nome"),
+                "tipo",
+                name="categoria_usuario_nome_tipo_unico",
+            ),
+        ]
 
     # VALIDA REGRAS DA CATEGORIA
     def clean(self):
