@@ -9,7 +9,7 @@ from .models import Usuario
 
 # FORMULARIO DE CRIACAO DE USUARIOS
 class UsuarioCreationForm(UserCreationForm):
-    # CONFIGURACAO DO MODELO USUARIO
+    # CONFIGURACAO DO MODEl USUARIO
     class Meta(UserCreationForm.Meta):
         model = Usuario
         fields = (

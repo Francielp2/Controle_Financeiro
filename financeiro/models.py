@@ -47,13 +47,15 @@ class Conta(models.Model):
     # CALCULA O SALDO ATUAL DA CONTA
     @property
     def saldo_atual(self):
-        entradas = self.movimentacoes_destino.aggregate(total=Sum("valor"))[
-            "total"
-        ] or Decimal("0.00")
+        entradas = (
+            self.movimentacoes_destino.aggregate(total=Sum("valor"))["total"]
+            or Decimal("0.00")
+        )
 
-        saidas = self.movimentacoes_origem.aggregate(total=Sum("valor"))[
-            "total"
-        ] or Decimal("0.00")
+        saidas = (
+            self.movimentacoes_origem.aggregate(total=Sum("valor"))["total"]
+            or Decimal("0.00")
+        )
 
         return self.saldo_inicial + entradas - saidas
 
@@ -85,6 +87,7 @@ class Conta(models.Model):
     # REPRESENTACAO EM TEXTO DA CONTA
     def __str__(self):
         return self.nome
+
 
 # MODELO DE CATEGORIA FINANCEIRA
 class Categoria(models.Model):
@@ -244,35 +247,39 @@ class CompromissoFinanceiro(models.Model):
         if self.valor_total is not None and self.valor_total <= 0:
             raise ValidationError({"valor_total": "O valor deve ser maior que zero."})
 
-        if (
-            self.valor_pago_recebido is not None
-            and self.valor_pago_recebido < 0
-        ):
-            raise ValidationError({
-                "valor_pago_recebido": "O valor não pode ser negativo."
-            })
+        if self.valor_pago_recebido is not None and self.valor_pago_recebido < 0:
+            raise ValidationError(
+                {
+                    "valor_pago_recebido": "O valor não pode ser negativo."
+                }
+            )
 
         if (
             self.valor_total is not None
             and self.valor_pago_recebido is not None
             and self.valor_pago_recebido > self.valor_total
         ):
-            raise ValidationError({
-                "valor_pago_recebido": "O valor registrado não pode superar o total."
-            })
+            raise ValidationError(
+                {
+                    "valor_pago_recebido": (
+                        "O valor registrado não pode superar o total."
+                    )
+                }
+            )
 
         if self.conta_id and self.conta.usuario_id != self.usuario_id:
-            raise ValidationError({
-                "conta": "A conta deve pertencer ao mesmo usuário."
-            })
+            raise ValidationError(
+                {
+                    "conta": "A conta deve pertencer ao mesmo usuário."
+                }
+            )
 
-        if (
-            self.categoria_id
-            and self.categoria.usuario_id != self.usuario_id
-        ):
-            raise ValidationError({
-                "categoria": "A categoria deve pertencer ao mesmo usuário."
-            })
+        if self.categoria_id and self.categoria.usuario_id != self.usuario_id:
+            raise ValidationError(
+                {
+                    "categoria": "A categoria deve pertencer ao mesmo usuário."
+                }
+            )
 
     # ATUALIZA O STATUS DO COMPROMISSO
     def atualizar_status(self):
@@ -398,14 +405,20 @@ class Movimentacao(models.Model):
             raise ValidationError({"conta_destino": "Informe a conta de destino."})
 
         if self.conta_origem == self.conta_destino:
-            raise ValidationError({
-                "conta_destino": "A conta de destino deve ser diferente da origem."
-            })
+            raise ValidationError(
+                {
+                    "conta_destino": (
+                        "A conta de destino deve ser diferente da origem."
+                    )
+                }
+            )
 
         if self.categoria:
-            raise ValidationError({
-                "categoria": "Transferências internas não possuem categoria."
-            })
+            raise ValidationError(
+                {
+                    "categoria": "Transferências internas não possuem categoria."
+                }
+            )
 
     # VALIDA SALDO DISPONIVEL
     def validar_saldo(self):
@@ -439,59 +452,77 @@ class Movimentacao(models.Model):
 
         if self.conta_origem_id:
             if self.conta_origem.usuario_id != self.usuario_id:
-                raise ValidationError({
-                    "conta_origem": "A conta de origem pertence a outro usuário."
-                })
+                raise ValidationError(
+                    {
+                        "conta_origem": (
+                            "A conta de origem pertence a outro usuário."
+                        )
+                    }
+                )
 
         if self.conta_destino_id:
             if self.conta_destino.usuario_id != self.usuario_id:
-                raise ValidationError({
-                    "conta_destino": "A conta de destino pertence a outro usuário."
-                })
+                raise ValidationError(
+                    {
+                        "conta_destino": (
+                            "A conta de destino pertence a outro usuário."
+                        )
+                    }
+                )
 
         if self.categoria_id:
             if self.categoria.usuario_id != self.usuario_id:
-                raise ValidationError({
-                    "categoria": "A categoria pertence a outro usuário."
-                })
+                raise ValidationError(
+                    {
+                        "categoria": "A categoria pertence a outro usuário."
+                    }
+                )
 
         if self.tipo == self.Tipo.ENTRADA:
             if not self.conta_destino:
-                raise ValidationError({
-                    "conta_destino": "Uma entrada precisa de uma conta de destino."
-                })
+                raise ValidationError(
+                    {
+                        "conta_destino": (
+                            "Uma entrada precisa de uma conta de destino."
+                        )
+                    }
+                )
 
             if self.conta_origem:
-                raise ValidationError({
-                    "conta_origem": "Uma entrada não possui conta de origem."
-                })
+                raise ValidationError(
+                    {
+                        "conta_origem": "Uma entrada não possui conta de origem."
+                    }
+                )
 
-            if (
-                self.categoria
-                and self.categoria.tipo != Categoria.Tipo.ENTRADA
-            ):
-                raise ValidationError({
-                    "categoria": "A entrada precisa de uma categoria de entrada."
-                })
+            if self.categoria and self.categoria.tipo != Categoria.Tipo.ENTRADA:
+                raise ValidationError(
+                    {
+                        "categoria": "A entrada precisa de uma categoria de entrada."
+                    }
+                )
 
         elif self.tipo == self.Tipo.SAIDA:
             if not self.conta_origem:
-                raise ValidationError({
-                    "conta_origem": "Uma saída precisa de uma conta de origem."
-                })
+                raise ValidationError(
+                    {
+                        "conta_origem": "Uma saída precisa de uma conta de origem."
+                    }
+                )
 
             if self.conta_destino:
-                raise ValidationError({
-                    "conta_destino": "Uma saída não possui conta de destino."
-                })
+                raise ValidationError(
+                    {
+                        "conta_destino": "Uma saída não possui conta de destino."
+                    }
+                )
 
-            if (
-                self.categoria
-                and self.categoria.tipo != Categoria.Tipo.SAIDA
-            ):
-                raise ValidationError({
-                    "categoria": "A saída precisa de uma categoria de saída."
-                })
+            if self.categoria and self.categoria.tipo != Categoria.Tipo.SAIDA:
+                raise ValidationError(
+                    {
+                        "categoria": "A saída precisa de uma categoria de saída."
+                    }
+                )
 
             self.validar_saldo()
 

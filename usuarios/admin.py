@@ -49,7 +49,7 @@ class UsuarioAdmin(UserAdmin):
                 "fields": (
                     "email",
                     "password",
-                )
+                ),
             },
         ),
         (
@@ -61,7 +61,7 @@ class UsuarioAdmin(UserAdmin):
                     "cpf",
                     "rg",
                     "telefone",
-                )
+                ),
             },
         ),
         (
@@ -73,7 +73,7 @@ class UsuarioAdmin(UserAdmin):
                     "is_superuser",
                     "groups",
                     "user_permissions",
-                )
+                ),
             },
         ),
         (
@@ -82,7 +82,7 @@ class UsuarioAdmin(UserAdmin):
                 "fields": (
                     "last_login",
                     "date_joined",
-                )
+                ),
             },
         ),
     )
