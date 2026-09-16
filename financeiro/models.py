@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
-from django.db.models import Sum
+from django.db.models import Q, Sum
 from django.db.models.functions import Lower
 from django.utils import timezone
 
@@ -244,6 +244,18 @@ class CompromissoFinanceiro(models.Model):
         default=Status.PENDENTE,
     )
 
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=Q(valor_total__gt=0),
+                name="compromisso_valor_total_positivo",
+            ),
+            models.CheckConstraint(
+                condition=Q(valor_pago_recebido__gte=0),
+                name="compromisso_valor_pago_recebido_nao_negativo",
+            ),
+        ]
+
     # CALCULA O VALOR RESTANTE
     def valor_restante(self):
         restante = self.valor_total - self.valor_pago_recebido
@@ -301,6 +313,32 @@ class CompromissoFinanceiro(models.Model):
                 }
             )
 
+        if (
+            self.categoria_id
+            and self.tipo == self.Tipo.PAGAR
+            and self.categoria.tipo != Categoria.Tipo.SAIDA
+        ):
+            raise ValidationError(
+                {
+                    "categoria": (
+                        "Compromissos a pagar precisam de categoria de saída."
+                    )
+                }
+            )
+
+        if (
+            self.categoria_id
+            and self.tipo == self.Tipo.RECEBER
+            and self.categoria.tipo != Categoria.Tipo.ENTRADA
+        ):
+            raise ValidationError(
+                {
+                    "categoria": (
+                        "Compromissos a receber precisam de categoria de entrada."
+                    )
+                }
+            )
+
     # ATUALIZA O STATUS DO COMPROMISSO
     def atualizar_status(self):
         if self.esta_quitado():
@@ -330,8 +368,13 @@ class CompromissoFinanceiro(models.Model):
 
     # SALVA O COMPROMISSO APOS ATUALIZAR STATUS
     def save(self, *args, **kwargs):
-        self.atualizar_status()
         self.full_clean()
+        self.atualizar_status()
+
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            kwargs["update_fields"] = set(update_fields) | {"status"}
+
         super().save(*args, **kwargs)
 
     # REPRESENTACAO EM TEXTO DO COMPROMISSO
