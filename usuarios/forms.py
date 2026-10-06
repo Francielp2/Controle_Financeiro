@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.forms import (
     UserChangeForm,
     UserCreationForm,
+    AuthenticationForm,
 )
 
 from .models import Usuario
@@ -52,3 +53,13 @@ class UsuarioUpdateForm(forms.ModelForm):
             "rg",
             "telefone",
         )
+
+
+class LoginForm(AuthenticationForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["username"].label = "Email"
+
+    def clean_username(self):
+        email = self.cleaned_data["username"]
+        return email.strip().lower()
