@@ -15,7 +15,6 @@
         <thead>
             <tr>
                 <th>Nome</th>
-                <th>Usuário</th>
                 <th>Tipo</th>
                 <th>Saldo inicial</th>
                 <th>Saldo atual</th>
@@ -28,7 +27,6 @@
             {% for conta in contas %}
                 <tr>
                     <td>{{ conta.nome }}</td>
-                    <td>{{ conta.usuario }}</td>
                     <td>{{ conta.get_tipo_display }}</td>
                     <td>R$ {{ conta.saldo_inicial }}</td>
                     <td>R$ {{ conta.saldo_atual }}</td>
@@ -47,7 +45,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="7">Nenhuma conta cadastrada.</td>
+                    <td colspan="6">Nenhuma conta cadastrada.</td>
                 </tr>
             {% endfor %}
         </tbody>

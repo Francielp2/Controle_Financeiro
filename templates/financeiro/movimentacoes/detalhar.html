@@ -5,7 +5,6 @@
 {% block content %}
     <h2>Movimentação {{ movimentacao.pk }}</h2>
 
-    <p><strong>Usuário:</strong> {{ movimentacao.usuario }}</p>
     <p><strong>Tipo:</strong> {{ movimentacao.get_tipo_display }}</p>
     <p><strong>Valor:</strong> R$ {{ movimentacao.valor }}</p>
     <p><strong>Descrição:</strong> {{ movimentacao.descricao|default:"-" }}</p>

@@ -4,8 +4,6 @@
 
 {% block content %}
     <h2>{{ compromisso.titulo }}</h2>
-
-    <p><strong>Usuário:</strong> {{ compromisso.usuario }}</p>
     <p><strong>Pessoa:</strong> {{ compromisso.pessoa|default:"-" }}</p>
     <p><strong>Tipo:</strong> {{ compromisso.get_tipo_display }}</p>
     <p><strong>Conta:</strong> {{ compromisso.conta|default:"-" }}</p>

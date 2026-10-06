@@ -15,7 +15,6 @@
         <thead>
             <tr>
                 <th>Título</th>
-                <th>Usuário</th>
                 <th>Tipo</th>
                 <th>Total</th>
                 <th>Restante</th>
@@ -29,7 +28,6 @@
             {% for compromisso in compromissos %}
                 <tr>
                     <td>{{ compromisso.titulo }}</td>
-                    <td>{{ compromisso.usuario }}</td>
                     <td>{{ compromisso.get_tipo_display }}</td>
                     <td>R$ {{ compromisso.valor_total }}</td>
                     <td>R$ {{ compromisso.valor_restante }}</td>
@@ -49,7 +47,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="8">Nenhum compromisso cadastrado.</td>
+                    <td colspan="7">Nenhum compromisso cadastrado.</td>
                 </tr>
             {% endfor %}
         </tbody>

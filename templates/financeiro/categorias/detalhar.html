@@ -4,8 +4,6 @@
 
 {% block content %}
     <h2>{{ categoria.nome }}</h2>
-
-    <p><strong>Usuário:</strong> {{ categoria.usuario }}</p>
     <p><strong>Tipo:</strong> {{ categoria.get_tipo_display }}</p>
     <p><strong>Descrição:</strong> {{ categoria.descricao|default:"-" }}</p>
     <p><strong>Ativa:</strong> {{ categoria.ativa|yesno:"Sim,Não" }}</p>

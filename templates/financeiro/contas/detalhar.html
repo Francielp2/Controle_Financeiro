@@ -5,7 +5,6 @@
 {% block content %}
     <h2>{{ conta.nome }}</h2>
 
-    <p><strong>Usuário:</strong> {{ conta.usuario }}</p>
     <p><strong>Tipo:</strong> {{ conta.get_tipo_display }}</p>
     <p><strong>Saldo inicial:</strong> R$ {{ conta.saldo_inicial }}</p>
     <p><strong>Saldo atual:</strong> R$ {{ conta.saldo_atual }}</p>
