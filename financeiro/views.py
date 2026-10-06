@@ -411,7 +411,8 @@ def compromisso_detalhar(request, pk):
 # CRIA UM COMPROMISSO FINANCEIRO
 def compromisso_criar(request):
     if request.method == "POST":
-        form = CompromissoFinanceiroForm(request.POST, instance=CompromissoFinanceiro(usuario=request.usuario))
+        form = CompromissoFinanceiroForm(
+            request.POST, instance=CompromissoFinanceiro(usuario=request.usuario))
 
         if form.is_valid():
             compromisso = form.save()
@@ -426,7 +427,8 @@ def compromisso_criar(request):
                 pk=compromisso.pk,
             )
     else:
-        form = CompromissoFinanceiroForm(instance=CompromissoFinanceiro(usuario=request.usuario))
+        form = CompromissoFinanceiroForm(
+            instance=CompromissoFinanceiro(usuario=request.usuario))
 
     return render(
         request,
@@ -522,12 +524,11 @@ def compromisso_excluir(request, pk):
 # LISTA AS MOVIMENTACOES
 def movimentacao_listar(request):
     movimentacoes = Movimentacao.objects.select_related(
-        "usuario",
         "conta_origem",
         "conta_destino",
         "categoria",
         "compromisso_financeiro",
-    ).order_by("-data", "-hora")
+    ).order_by("-data", "-hora").filter(usuario=request.usuario)
 
     return render(
         request,
@@ -547,6 +548,7 @@ def movimentacao_detalhar(request, pk):
             "compromisso_financeiro",
         ),
         pk=pk,
+        usuario=request.usuario,
     )
 
     return render(
@@ -559,7 +561,8 @@ def movimentacao_detalhar(request, pk):
 # CRIA UMA MOVIMENTACAO
 def movimentacao_criar(request):
     if request.method == "POST":
-        form = MovimentacaoForm(request.POST)
+        form = MovimentacaoForm(
+            request.POST, instance=Movimentacao(usuario=request.usuario))
 
         if form.is_valid():
             movimentacao = form.save()
@@ -574,7 +577,7 @@ def movimentacao_criar(request):
                 pk=movimentacao.pk,
             )
     else:
-        form = MovimentacaoForm()
+        form = MovimentacaoForm(instance=Movimentacao(usuario=request.usuario))
 
     return render(
         request,
@@ -592,6 +595,7 @@ def movimentacao_editar(request, pk):
     movimentacao = get_object_or_404(
         Movimentacao,
         pk=pk,
+        usuario=request.usuario,
     )
 
     if request.method == "POST":
@@ -634,6 +638,7 @@ def movimentacao_excluir(request, pk):
     movimentacao = get_object_or_404(
         Movimentacao,
         pk=pk,
+        usuario=request.usuario,
     )
 
     if request.method == "POST":
