@@ -8,7 +8,7 @@ from django.urls import reverse
 
 from financeiro.models import Categoria, CompromissoFinanceiro, Conta, Movimentacao
 
-from .forms import UsuarioCreationForm, UsuarioUpdateForm
+from .forms import UsuarioCreationForm, UsuarioUpdateForm, UsuarioStaffCreationForm
 from .models import Usuario
 from .utils import usuario_logado
 
@@ -58,11 +58,15 @@ def usuario_detalhar(request, pk):
 
 # CRIA UM USUARIO
 def usuario_criar(request):
-    if request.user.is_authenticated:
+    eh_staff = request.user.is_authenticated and request.user.is_staff
+
+    if request.user.is_authenticated and not eh_staff:
         return redirect("financeiro:inicio")
 
+    FormClass = UsuarioStaffCreationForm if eh_staff else UsuarioCreationForm
+
     if request.method == "POST":
-        form = UsuarioCreationForm(request.POST)
+        form = FormClass(request.POST)
 
         if form.is_valid():
             usuario = form.save()
@@ -72,19 +76,29 @@ def usuario_criar(request):
                 "Usuário cadastrado com sucesso.",
             )
 
+            if eh_staff:
+                return redirect(
+                    "usuarios:usuario_detalhar",
+                    pk=usuario.pk,
+                )
+
             login(request, usuario)
             return redirect("financeiro:inicio")
 
     else:
-        form = UsuarioCreationForm()
+        form = FormClass()
 
     return render(
         request,
         "form.html",
         {
-            "titulo": "Cadastrar usuário",
+            "titulo": "Cadastrar usuário" if eh_staff else "Criar conta",
             "form": form,
-            "cancelar_url": reverse("usuarios:usuario_listar"),
+            "cancelar_url": (
+                reverse("usuarios:usuario_listar")
+                if eh_staff
+                else reverse("usuarios:login")
+            ),
         },
     )
 
@@ -179,6 +193,7 @@ def usuario_excluir(request, pk):
             ),
         },
     )
+
 
 @login_required
 def perfil(request):

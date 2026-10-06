@@ -5,6 +5,12 @@
 {% block content %}
     <h2>Usuários</h2>
 
+    <p>
+    <a href="{% url 'usuarios:usuario_criar' %}">
+        Cadastrar usuário
+    </a>
+    </p>
+
     <table>
         <thead>
             <tr>
@@ -13,6 +19,7 @@
                 <th>E-mail</th>
                 <th>CPF</th>
                 <th>Telefone</th>
+                <th>Staff</th>
                 <th>Ações</th>
             </tr>
         </thead>
@@ -25,6 +32,7 @@
                     <td>{{ usuario.email }}</td>
                     <td>{{ usuario.cpf }}</td>
                     <td>{{ usuario.telefone }}</td>
+                    <td>{{ usuario.is_staff|yesno:"Sim,Não" }}</td>
                     <td class="acoes">
                         <a href="{% url 'usuarios:usuario_detalhar' usuario.pk %}">
                             Detalhes
@@ -39,7 +47,7 @@
                 </tr>
             {% empty %}
                 <tr>
-                    <td colspan="6">Nenhum usuário cadastrado.</td>
+                    <td colspan="7">Nenhum usuário cadastrado.</td>
                 </tr>
             {% endfor %}
         </tbody>

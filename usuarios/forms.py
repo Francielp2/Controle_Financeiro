@@ -63,3 +63,10 @@ class LoginForm(AuthenticationForm):
     def clean_username(self):
         email = self.cleaned_data["username"]
         return email.strip().lower()
+
+
+class UsuarioStaffCreationForm(UserCreationForm):
+
+    class Meta(UserCreationForm.Meta):
+        model = Usuario
+        fields = (UsuarioCreationForm.Meta.fields + ("is_staff",))

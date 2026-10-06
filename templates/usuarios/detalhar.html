@@ -11,6 +11,7 @@
     <p><strong>CPF:</strong> {{ usuario.cpf }}</p>
     <p><strong>RG:</strong> {{ usuario.rg }}</p>
     <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
+    <p><strong>Staff:</strong> {{ usuario.is_staff|yesno:"Sim,Não" }}</p>
 
     <p class="acoes">
         <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
