@@ -14,7 +14,7 @@ app_name = "usuarios"
 # ROTAS DO APLICATIVO USUARIOS
 urlpatterns = [
     path("login/", auth_views.LoginView.as_view(template_name="usuarios/login.html",
-         authentication_form=LoginForm), name="login"),
+            authentication_form=LoginForm, redirect_authenticated_user=True,), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("", views.usuario_listar, name="usuario_listar"),
     path("criar/", views.usuario_criar, name="usuario_criar"),
