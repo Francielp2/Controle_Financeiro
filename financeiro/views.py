@@ -19,9 +19,8 @@ from .models import (
 )
 from .decorators import perfil_obrigatorio
 
+
 # VIEW DA PAGINA INICIAL
-
-
 @login_required
 @perfil_obrigatorio
 def inicio(request):
@@ -48,7 +47,7 @@ def inicio(request):
 @login_required
 @perfil_obrigatorio
 def conta_listar(request):
-    contas = Conta.objects.filter(usuario=request.usuario)
+    contas = Conta.objects.filter(usuario=request.usuario).order_by("nome")
 
     return render(
         request,
@@ -91,6 +90,7 @@ def conta_detalhar(request, pk):
 @perfil_obrigatorio
 def conta_criar(request):
     if request.method == "POST":
+
         form = ContaForm(request.POST, instance=Conta(usuario=request.usuario))
 
         if form.is_valid():
@@ -164,8 +164,8 @@ def conta_editar(request, pk):
 @login_required
 @perfil_obrigatorio
 def conta_excluir(request, pk):
-
     conta = get_object_or_404(Conta, pk=pk, usuario=request.usuario)
+
     if request.method == "POST":
         try:
             conta.delete()
@@ -208,11 +208,11 @@ def conta_excluir(request, pk):
 
 
 # LISTA AS CATEGORIAS CADASTRADAS
+@login_required
+@perfil_obrigatorio
 def categoria_listar(request):
-    categorias = Categoria.objects.select_related("usuario").order_by(
-        "usuario__email",
-        "nome",
-    )
+    categorias = Categoria.objects.filter(
+        usuario=request.usuario).order_by("nome")
 
     return render(
         request,
@@ -222,10 +222,13 @@ def categoria_listar(request):
 
 
 # DETALHA UMA CATEGORIA
+@login_required
+@perfil_obrigatorio
 def categoria_detalhar(request, pk):
     categoria = get_object_or_404(
         Categoria.objects.select_related("usuario"),
         pk=pk,
+        usuario=request.usuario,
     )
 
     return render(
@@ -245,9 +248,12 @@ def categoria_detalhar(request, pk):
 
 
 # CRIA UMA CATEGORIA
+@login_required
+@perfil_obrigatorio
 def categoria_criar(request):
     if request.method == "POST":
-        form = CategoriaForm(request.POST)
+        form = CategoriaForm(
+            request.POST, instance=Categoria(usuario=request.usuario))
 
         if form.is_valid():
             categoria = form.save()
@@ -262,7 +268,7 @@ def categoria_criar(request):
                 pk=categoria.pk,
             )
     else:
-        form = CategoriaForm()
+        form = CategoriaForm(instance=Categoria(usuario=request.usuario))
 
     return render(
         request,
@@ -276,8 +282,10 @@ def categoria_criar(request):
 
 
 # EDITA UMA CATEGORIA
+@login_required
+@perfil_obrigatorio
 def categoria_editar(request, pk):
-    categoria = get_object_or_404(Categoria, pk=pk)
+    categoria = get_object_or_404(Categoria, pk=pk, usuario=request.usuario)
 
     if request.method == "POST":
         form = CategoriaForm(
@@ -315,8 +323,10 @@ def categoria_editar(request, pk):
 
 
 # EXCLUI UMA CATEGORIA
+@login_required
+@perfil_obrigatorio
 def categoria_excluir(request, pk):
-    categoria = get_object_or_404(Categoria, pk=pk)
+    categoria = get_object_or_404(Categoria, pk=pk, usuario=request.usuario)
 
     if request.method == "POST":
         try:
