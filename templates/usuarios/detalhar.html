@@ -19,9 +19,11 @@
         <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">
             Excluir
         </a>
-        <a href="{% url 'usuarios:usuario_listar' %}">
-            Voltar
-        </a>
+        {% if user.is_staff %}
+            <a href="{% url 'usuarios:usuario_listar' %}">
+                Voltar
+            </a>
+        {% endif %}
     </p>
 
     <h3>Contas</h3>
