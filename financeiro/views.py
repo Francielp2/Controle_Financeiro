@@ -17,16 +17,19 @@ from .models import (
     Conta,
     Movimentacao,
 )
-
+from .decorators import perfil_obrigatorio
 
 # VIEW DA PAGINA INICIAL
+
+
 @login_required
+@perfil_obrigatorio
 def inicio(request):
     contexto = {
-        "quantidade_contas": Conta.objects.count(),
-        "quantidade_categorias": Categoria.objects.count(),
-        "quantidade_compromissos": CompromissoFinanceiro.objects.count(),
-        "quantidade_movimentacoes": Movimentacao.objects.count(),
+        "quantidade_contas": request.usuario.contas.count(),
+        "quantidade_categorias": request.usuario.categorias.count(),
+        "quantidade_compromissos": request.usuario.compromissos.count(),
+        "quantidade_movimentacoes": request.usuario.movimentacoes.count(),
     }
 
     return render(
@@ -42,11 +45,10 @@ def inicio(request):
 
 
 # LISTA AS CONTAS CADASTRADAS
+@login_required
+@perfil_obrigatorio
 def conta_listar(request):
-    contas = Conta.objects.select_related("usuario").order_by(
-        "usuario__email",
-        "nome",
-    )
+    contas = Conta.objects.filter(usuario=request.usuario)
 
     return render(
         request,
@@ -56,10 +58,13 @@ def conta_listar(request):
 
 
 # DETALHA UMA CONTA
+@login_required
+@perfil_obrigatorio
 def conta_detalhar(request, pk):
     conta = get_object_or_404(
         Conta.objects.select_related("usuario"),
         pk=pk,
+        usuario=request.usuario
     )
 
     movimentacoes = Movimentacao.objects.filter(
@@ -82,9 +87,11 @@ def conta_detalhar(request, pk):
 
 
 # CRIA UMA CONTA
+@login_required
+@perfil_obrigatorio
 def conta_criar(request):
     if request.method == "POST":
-        form = ContaForm(request.POST)
+        form = ContaForm(request.POST, instance=Conta(usuario=request.usuario))
 
         if form.is_valid():
             conta = form.save()
@@ -99,7 +106,7 @@ def conta_criar(request):
                 pk=conta.pk,
             )
     else:
-        form = ContaForm()
+        form = ContaForm(instance=Conta(usuario=request.usuario))
 
     return render(
         request,
@@ -113,8 +120,10 @@ def conta_criar(request):
 
 
 # EDITA UMA CONTA
+@login_required
+@perfil_obrigatorio
 def conta_editar(request, pk):
-    conta = get_object_or_404(Conta, pk=pk)
+    conta = get_object_or_404(Conta, pk=pk, usuario=request.usuario)
 
     if request.method == "POST":
         form = ContaForm(
@@ -152,9 +161,11 @@ def conta_editar(request, pk):
 
 
 # EXCLUI UMA CONTA
+@login_required
+@perfil_obrigatorio
 def conta_excluir(request, pk):
-    conta = get_object_or_404(Conta, pk=pk)
 
+    conta = get_object_or_404(Conta, pk=pk, usuario=request.usuario)
     if request.method == "POST":
         try:
             conta.delete()

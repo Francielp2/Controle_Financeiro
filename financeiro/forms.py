@@ -14,7 +14,6 @@ class ContaForm(forms.ModelForm):
     class Meta:
         model = Conta
         fields = (
-            "usuario",
             "nome",
             "tipo",
             "saldo_inicial",
@@ -29,7 +28,6 @@ class CategoriaForm(forms.ModelForm):
     class Meta:
         model = Categoria
         fields = (
-            "usuario",
             "nome",
             "descricao",
             "tipo",
@@ -37,12 +35,25 @@ class CategoriaForm(forms.ModelForm):
         )
 
 # FORMULARIO DE COMPROMISSOS FINANCEIROS
+
+
 class CompromissoFinanceiroForm(forms.ModelForm):
+
+    def _init_(self, *args, **kwargs):
+        super()._init_(*args, **kwargs)
+
+        if self.instance.usuario_id:
+            self.fields["conta"].queryset = Conta.objects.filter(
+                usuario_id=self.instance.usuario_id
+            )
+            self.fields["categoria"].queryset = Categoria.objects.filter(
+                usuario_id=self.instance.usuario_id
+            )
+
     # CONFIGURACAO DO MODELO COMPROMISSO FINANCEIRO
     class Meta:
         model = CompromissoFinanceiro
         fields = (
-            "usuario",
             "conta",
             "categoria",
             "titulo",
@@ -62,10 +73,34 @@ class CompromissoFinanceiroForm(forms.ModelForm):
 # FORMULARIO DE MOVIMENTACOES
 class MovimentacaoForm(forms.ModelForm):
     # CONFIGURACAO DO MODELO MOVIMENTACAO
+
+    def _init_(self, *args, **kwargs):
+        super()._init_(*args, **kwargs)
+
+        if self.instance.usuario_id:
+            usuario_id = self.instance.usuario_id
+
+            self.fields["conta_origem"].queryset = Conta.objects.filter(
+                usuario_id=usuario_id
+            )
+
+            self.fields["conta_destino"].queryset = Conta.objects.filter(
+                usuario_id=usuario_id
+            )
+
+            self.fields["categoria"].queryset = Categoria.objects.filter(
+                usuario_id=usuario_id
+            )
+
+            self.fields["compromisso_financeiro"].queryset = (
+                CompromissoFinanceiro.objects.filter(
+                    usuario_id=usuario_id
+                )
+            )
+
     class Meta:
         model = Movimentacao
         fields = (
-            "usuario",
             "tipo",
             "valor",
             "descricao",
