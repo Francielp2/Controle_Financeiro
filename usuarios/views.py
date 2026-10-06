@@ -1,28 +1,21 @@
 from django.contrib import messages
 from django.contrib.auth import login, logout
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.shortcuts import (
-    get_object_or_404,
-    redirect,
-    render,
-)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from financeiro.models import (
-    Categoria,
-    CompromissoFinanceiro,
-    Conta,
-    Movimentacao,
-)
+from financeiro.models import Categoria, CompromissoFinanceiro, Conta, Movimentacao
 
-from .forms import (
-    UsuarioCreationForm,
-    UsuarioUpdateForm,
-)
+from .forms import UsuarioCreationForm, UsuarioUpdateForm
 from .models import Usuario
+from .utils import usuario_logado
 
 
 # LISTA OS USUARIOS CADASTRADOS
+@login_required
+@user_passes_test(lambda u: u.is_staff, login_url="financeiro:inicio")
 def usuario_listar(request):
     usuarios = Usuario.objects.all().order_by(
         "first_name",
@@ -37,8 +30,11 @@ def usuario_listar(request):
 
 
 # DETALHA UM USUARIO
+@login_required
 def usuario_detalhar(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
+    if usuario.pk != request.user.pk and not request.user.is_staff:
+        raise PermissionDenied
 
     contexto = {
         "usuario": usuario,
@@ -94,8 +90,11 @@ def usuario_criar(request):
 
 
 # EDITA UM USUARIO
+@login_required
 def usuario_editar(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
+    if usuario.pk != request.user.pk and not request.user.is_staff:
+        raise PermissionDenied
 
     if request.method == "POST":
         form = UsuarioUpdateForm(
@@ -133,8 +132,12 @@ def usuario_editar(request, pk):
 
 
 # EXCLUI UM USUARIO E SEUS DADOS
+@login_required
 def usuario_excluir(request, pk):
     usuario = get_object_or_404(Usuario, pk=pk)
+    if usuario.pk != request.user.pk and not request.user.is_staff:
+        raise PermissionDenied
+    excluindo_propria_conta = usuario.pk == request.user.pk
 
     if request.method == "POST":
         # ORDEM NECESSARIA PARA EVITAR CONFLITOS COM CAMPOS PROTECT
@@ -154,6 +157,10 @@ def usuario_excluir(request, pk):
             "Usuário e seus dados foram excluídos.",
         )
 
+        if excluindo_propria_conta:
+            logout(request)
+            return redirect("usuarios:login")
+
         return redirect("usuarios:usuario_listar")
 
     return render(
@@ -171,4 +178,20 @@ def usuario_excluir(request, pk):
                 args=[usuario.pk],
             ),
         },
+    )
+
+@login_required
+def perfil(request):
+    usuario = usuario_logado(request)
+
+    if usuario is None:
+        messages.info(
+            request,
+            "Administradores não possuem perfil financeiro.",
+        )
+        return redirect("admin:index")
+
+    return redirect(
+        "usuarios:usuario_detalhar",
+        pk=usuario.pk,
     )
