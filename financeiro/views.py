@@ -372,10 +372,9 @@ def categoria_excluir(request, pk):
 # LISTA OS COMPROMISSOS FINANCEIROS
 def compromisso_listar(request):
     compromissos = CompromissoFinanceiro.objects.select_related(
-        "usuario",
         "conta",
         "categoria",
-    ).order_by("-data_vencimento")
+    ).order_by("-data_vencimento").filter(usuario=request.usuario)
 
     return render(
         request,
@@ -393,6 +392,7 @@ def compromisso_detalhar(request, pk):
             "categoria",
         ),
         pk=pk,
+        usuario=request.usuario,
     )
 
     return render(
@@ -411,7 +411,7 @@ def compromisso_detalhar(request, pk):
 # CRIA UM COMPROMISSO FINANCEIRO
 def compromisso_criar(request):
     if request.method == "POST":
-        form = CompromissoFinanceiroForm(request.POST)
+        form = CompromissoFinanceiroForm(request.POST, instance=CompromissoFinanceiro(usuario=request.usuario))
 
         if form.is_valid():
             compromisso = form.save()
@@ -426,7 +426,7 @@ def compromisso_criar(request):
                 pk=compromisso.pk,
             )
     else:
-        form = CompromissoFinanceiroForm()
+        form = CompromissoFinanceiroForm(instance=CompromissoFinanceiro(usuario=request.usuario))
 
     return render(
         request,
@@ -444,6 +444,7 @@ def compromisso_editar(request, pk):
     compromisso = get_object_or_404(
         CompromissoFinanceiro,
         pk=pk,
+        usuario=request.usuario,
     )
 
     if request.method == "POST":
@@ -486,6 +487,7 @@ def compromisso_excluir(request, pk):
     compromisso = get_object_or_404(
         CompromissoFinanceiro,
         pk=pk,
+        usuario=request.usuario
     )
 
     if request.method == "POST":
