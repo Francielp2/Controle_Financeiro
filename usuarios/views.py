@@ -1,4 +1,5 @@
 from django.contrib import messages
+from django.contrib.auth import login, logout
 from django.db import transaction
 from django.shortcuts import (
     get_object_or_404,
@@ -61,6 +62,9 @@ def usuario_detalhar(request, pk):
 
 # CRIA UM USUARIO
 def usuario_criar(request):
+    if request.user.is_authenticated:
+        return redirect("financeiro:inicio")
+
     if request.method == "POST":
         form = UsuarioCreationForm(request.POST)
 
@@ -72,10 +76,9 @@ def usuario_criar(request):
                 "Usuário cadastrado com sucesso.",
             )
 
-            return redirect(
-                "usuarios:usuario_detalhar",
-                pk=usuario.pk,
-            )
+            login(request, usuario)
+            return redirect("financeiro:inicio")
+
     else:
         form = UsuarioCreationForm()
 
