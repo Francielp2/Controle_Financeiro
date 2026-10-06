@@ -37,23 +37,39 @@
         .acoes a {
             margin-right: 8px;
         }
+
+        .sessao { margin-top: 10px; }
+        .form-sair { display: inline; }
+        
     </style>
 </head>
 <body>
     <h1>Controle Financeiro</h1>
 
     <nav>
-        <a href="{% url 'financeiro:inicio' %}">Início</a>
-        <a href="{% url 'usuarios:usuario_listar' %}">Usuários</a>
-        <a href="{% url 'financeiro:conta_listar' %}">Contas</a>
-        <a href="{% url 'financeiro:categoria_listar' %}">Categorias</a>
-        <a href="{% url 'financeiro:compromisso_listar' %}">
-            Compromissos
-        </a>
-        <a href="{% url 'financeiro:movimentacao_listar' %}">
-            Movimentações
-        </a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'financeiro:inicio' %}">Início</a>
+            <a href="{% url 'usuarios:usuario_listar' %}">Usuários</a>
+            <a href="{% url 'financeiro:conta_listar' %}">Contas</a>
+            <a href="{% url 'financeiro:categoria_listar' %}">Categorias</a>
+            <a href="{% url 'financeiro:compromisso_listar' %}">Compromissos</a>
+            <a href="{% url 'financeiro:movimentacao_listar' %}">Movimentações</a>
+        {% endif %}
     </nav>
+
+    <div class="sessao">
+        {% if user.is_authenticated %}
+            Olá, {{ user.first_name|default:user.username }}
+
+            <form method="post" action="{% url 'usuarios:logout' %}" class="form-sair">
+                {% csrf_token %}
+                <button type="submit">Sair</button>
+            </form>
+        {% else %}
+            <a href="{% url 'usuarios:login' %}">Entrar</a>
+            <a href="{% url 'usuarios:usuario_criar' %}">Cadastrar</a>
+        {% endif %}
+    </div>
 
     <hr>
 
