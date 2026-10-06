@@ -370,6 +370,8 @@ def categoria_excluir(request, pk):
 
 
 # LISTA OS COMPROMISSOS FINANCEIROS
+@login_required
+@perfil_obrigatorio
 def compromisso_listar(request):
     compromissos = CompromissoFinanceiro.objects.select_related(
         "conta",
@@ -384,6 +386,8 @@ def compromisso_listar(request):
 
 
 # DETALHA UM COMPROMISSO FINANCEIRO
+@login_required
+@perfil_obrigatorio
 def compromisso_detalhar(request, pk):
     compromisso = get_object_or_404(
         CompromissoFinanceiro.objects.select_related(
@@ -409,6 +413,8 @@ def compromisso_detalhar(request, pk):
 
 
 # CRIA UM COMPROMISSO FINANCEIRO
+@login_required
+@perfil_obrigatorio
 def compromisso_criar(request):
     if request.method == "POST":
         form = CompromissoFinanceiroForm(
@@ -442,6 +448,8 @@ def compromisso_criar(request):
 
 
 # EDITA UM COMPROMISSO FINANCEIRO
+@login_required
+@perfil_obrigatorio
 def compromisso_editar(request, pk):
     compromisso = get_object_or_404(
         CompromissoFinanceiro,
@@ -485,6 +493,8 @@ def compromisso_editar(request, pk):
 
 
 # EXCLUI UM COMPROMISSO FINANCEIRO
+@login_required
+@perfil_obrigatorio
 def compromisso_excluir(request, pk):
     compromisso = get_object_or_404(
         CompromissoFinanceiro,
@@ -522,6 +532,8 @@ def compromisso_excluir(request, pk):
 
 
 # LISTA AS MOVIMENTACOES
+@login_required
+@perfil_obrigatorio
 def movimentacao_listar(request):
     movimentacoes = Movimentacao.objects.select_related(
         "conta_origem",
@@ -538,6 +550,8 @@ def movimentacao_listar(request):
 
 
 # DETALHA UMA MOVIMENTACAO
+@login_required
+@perfil_obrigatorio
 def movimentacao_detalhar(request, pk):
     movimentacao = get_object_or_404(
         Movimentacao.objects.select_related(
@@ -559,6 +573,8 @@ def movimentacao_detalhar(request, pk):
 
 
 # CRIA UMA MOVIMENTACAO
+@login_required
+@perfil_obrigatorio
 def movimentacao_criar(request):
     if request.method == "POST":
         form = MovimentacaoForm(
@@ -591,6 +607,8 @@ def movimentacao_criar(request):
 
 
 # EDITA UMA MOVIMENTACAO
+@login_required
+@perfil_obrigatorio
 def movimentacao_editar(request, pk):
     movimentacao = get_object_or_404(
         Movimentacao,
@@ -634,6 +652,8 @@ def movimentacao_editar(request, pk):
 
 
 # EXCLUI UMA MOVIMENTACAO
+@login_required
+@perfil_obrigatorio
 def movimentacao_excluir(request, pk):
     movimentacao = get_object_or_404(
         Movimentacao,
