@@ -59,20 +59,18 @@
         {% endif %}
     </nav>
 
+    {% if user.is_authenticated %}
     <div class="sessao">
-        {% if user.is_authenticated %}
-            Olá, {{ user.first_name|default:user.username }}  
-            <a href="{% url 'usuarios:perfil' %}">Meu perfil</a>
+        Olá, {{ user.first_name|default:user.username }}
 
-            <form method="post" action="{% url 'usuarios:logout' %}" class="form-sair">
-                {% csrf_token %}
-                <button type="submit">Sair</button>
-            </form>
-        {% else %}
-            <a href="{% url 'usuarios:login' %}">Entrar</a>
-            <a href="{% url 'usuarios:usuario_criar' %}">Cadastrar</a>
-        {% endif %}
+        <a href="{% url 'usuarios:perfil' %}">Meu perfil</a>
+
+        <form method="post" action="{% url 'usuarios:logout' %}" class="form-sair">
+            {% csrf_token %}
+            <button type="submit">Sair</button>
+        </form>
     </div>
+    {% endif %}
 
     <hr>
 

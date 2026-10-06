@@ -1,17 +1,14 @@
 from django.contrib import messages
 from django.db.models import Q
 from django.db.models.deletion import ProtectedError
-from django.shortcuts import (
-    get_object_or_404,
-    redirect,
-    render,
-)
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 from .forms import (
-    ContaForm,
     CategoriaForm,
     CompromissoFinanceiroForm,
+    ContaForm,
     MovimentacaoForm,
 )
 from .models import (
@@ -23,6 +20,7 @@ from .models import (
 
 
 # VIEW DA PAGINA INICIAL
+@login_required
 def inicio(request):
     contexto = {
         "quantidade_contas": Conta.objects.count(),

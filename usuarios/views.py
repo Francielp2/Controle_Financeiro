@@ -90,16 +90,16 @@ def usuario_criar(request):
 
     return render(
         request,
-        "form.html",
+        "usuarios/cadastro.html" if not eh_staff else "form.html",
         {
             "titulo": "Cadastrar usuário" if eh_staff else "Criar conta",
             "form": form,
             "cancelar_url": (
-                reverse("usuarios:usuario_listar")
-                if eh_staff
-                else reverse("usuarios:login")
-            ),
-        },
+                    reverse("usuarios:usuario_listar")
+                    if eh_staff
+                    else reverse("usuarios:login")
+                ),
+            },
     )
 
 
