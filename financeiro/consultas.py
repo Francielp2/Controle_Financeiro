@@ -54,8 +54,64 @@ def movimentacoes_filtradas(
             "conta_origem",
             "conta_destino",
             "categoria",
+            "compromisso_financeiro",
         ).order_by("-data", "-hora")
     )
+
+
+def valor_para_texto(valor):
+    return str(dinheiro(valor))
+
+
+def movimentacao_para_dict(movimentacao):
+    return {
+        "id": movimentacao.id,
+        "tipo": movimentacao.tipo,
+        "tipo_nome": movimentacao.get_tipo_display(),
+        "valor": valor_para_texto(movimentacao.valor),
+        "descricao": movimentacao.descricao,
+        "data": movimentacao.data.isoformat(),
+        "hora": movimentacao.hora.isoformat() if movimentacao.hora else None,
+        "conta_origem": (
+            movimentacao.conta_origem.nome
+            if movimentacao.conta_origem
+            else None
+        ),
+        "conta_destino": (
+            movimentacao.conta_destino.nome
+            if movimentacao.conta_destino
+            else None
+        ),
+        "categoria": (
+            movimentacao.categoria.nome
+            if movimentacao.categoria
+            else None
+        ),
+        "compromisso": (
+            movimentacao.compromisso_financeiro.titulo
+            if movimentacao.compromisso_financeiro
+            else None
+        ),
+    }
+
+
+def compromisso_para_dict(compromisso):
+    return {
+        "id": compromisso.id,
+        "titulo": compromisso.titulo,
+        "tipo": compromisso.tipo,
+        "tipo_nome": compromisso.get_tipo_display(),
+        "valor_total": valor_para_texto(compromisso.valor_total),
+        "valor_pago_recebido": valor_para_texto(compromisso.valor_pago_recebido),
+        "valor_restante": valor_para_texto(compromisso.valor_restante()),
+        "data_vencimento": compromisso.data_vencimento.isoformat(),
+        "situacao": compromisso.situacao,
+        "situacao_nome": compromisso.situacao_display,
+        "conta": compromisso.conta.nome if compromisso.conta else None,
+        "categoria": compromisso.categoria.nome if compromisso.categoria else None,
+        "pessoa": compromisso.pessoa,
+        "descricao": compromisso.descricao,
+    }
 
 
 def resumo_periodo(usuario, inicio, fim):
@@ -230,3 +286,26 @@ def compromissos_pendentes(usuario, dias=7):
 
 def ultimas_movimentacoes(usuario, limite=10):
     return movimentacoes_filtradas(usuario=usuario)[:limite]
+
+
+def compromissos_pendentes_para_agente(usuario, dias=7):
+    compromissos = compromissos_pendentes(usuario, dias)
+
+    return {
+        "atrasados": [
+            compromisso_para_dict(compromisso)
+            for compromisso in compromissos["atrasados"]
+        ],
+
+        "proximos": [
+            compromisso_para_dict(compromisso)
+            for compromisso in compromissos["proximos"]
+        ],
+    }
+
+
+def ultimas_movimentacoes_para_agente(usuario, limite=10):
+    return [
+        movimentacao_para_dict(movimentacao)
+        for movimentacao in ultimas_movimentacoes(usuario, limite)
+    ]
