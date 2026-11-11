@@ -12,7 +12,9 @@
 <body>
     <script src="{% static 'vendor/tabler/js/tabler-theme.min.js' %}"></script>
     <div class="page">
-        {% include "partials/navegacao_tabler.html" %}
+        <div class="position-static">
+            {% include "partials/navegacao_tabler.html" %}
+        </div>
 
         <div class="page-wrapper">
             <main class="page-body">

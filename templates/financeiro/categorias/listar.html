@@ -1,49 +1,45 @@
-{% extends "base.html" %}
+{% extends "listagem.html" %}
 
 {% block title %}Categorias{% endblock %}
+{% block titulo_listagem %}Categorias{% endblock %}
 
-{% block content %}
-    <h2>Categorias</h2>
+{% block cadastrar %}
+    <a class="btn btn-primary" href="{% url 'financeiro:categoria_criar' %}">Cadastrar categoria</a>
+{% endblock %}
 
-    <p>
-        <a href="{% url 'financeiro:categoria_criar' %}">
-            Cadastrar categoria
-        </a>
-    </p>
-
-    <table class="table table-vcenter table-bordered mt-3">
-        <thead>
+{% block tabela %}
+    <thead>
+        <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Situação</th>
+            <th scope="col" class="w-1"><span class="visually-hidden">Ações</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for categoria in categorias %}
             <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Ativa</th>
-                <th>Ações</th>
+                <td data-label="Nome" class="fw-medium">{{ categoria.nome }}</td>
+                <td data-label="Tipo">
+                    <span class="badge {% if categoria.tipo == 'ENTRADA' %}bg-green-lt{% else %}bg-red-lt{% endif %}">
+                        {{ categoria.get_tipo_display }}
+                    </span>
+                </td>
+                <td data-label="Situação">
+                    {% if categoria.ativa %}
+                        <span class="badge bg-green-lt">Ativa</span>
+                    {% else %}
+                        <span class="badge bg-secondary-lt">Inativa</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-list flex-md-nowrap">
+                        {% include "partials/acoes_listagem.html" with pk=categoria.pk detalhar="financeiro:categoria_detalhar" editar="financeiro:categoria_editar" excluir="financeiro:categoria_excluir" only %}
+                    </div>
+                </td>
             </tr>
-        </thead>
-
-        <tbody>
-            {% for categoria in categorias %}
-                <tr>
-                    <td>{{ categoria.nome }}</td>
-                    <td>{{ categoria.get_tipo_display }}</td>
-                    <td>{{ categoria.ativa|yesno:"Sim,Não" }}</td>
-                    <td>
-                        <a href="{% url 'financeiro:categoria_detalhar' categoria.pk %}">
-                            Detalhes
-                        </a>
-                        <a href="{% url 'financeiro:categoria_editar' categoria.pk %}">
-                            Editar
-                        </a>
-                        <a href="{% url 'financeiro:categoria_excluir' categoria.pk %}">
-                            Excluir
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="4">Nenhuma categoria cadastrada.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% empty %}
+            <tr><td colspan="4" class="text-secondary py-4">Nenhuma categoria cadastrada.</td></tr>
+        {% endfor %}
+    </tbody>
 {% endblock %}

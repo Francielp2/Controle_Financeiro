@@ -1,53 +1,45 @@
-{% extends "base.html" %}
+{% extends "listagem.html" %}
 
 {% block title %}Contas{% endblock %}
+{% block titulo_listagem %}Contas{% endblock %}
 
-{% block content %}
-    <h2>Contas</h2>
+{% block cadastrar %}
+    <a class="btn btn-primary" href="{% url 'financeiro:conta_criar' %}">Cadastrar conta</a>
+{% endblock %}
 
-    <p>
-        <a href="{% url 'financeiro:conta_criar' %}">
-            Cadastrar conta
-        </a>
-    </p>
-
-    <table class="table table-vcenter table-bordered mt-3">
-        <thead>
+{% block tabela %}
+    <thead>
+        <tr>
+            <th scope="col">Nome</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Saldo inicial</th>
+            <th scope="col">Saldo atual</th>
+            <th scope="col">Situação</th>
+            <th scope="col" class="w-1"><span class="visually-hidden">Ações</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for conta in contas %}
             <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Saldo inicial</th>
-                <th>Saldo atual</th>
-                <th>Ativa</th>
-                <th>Ações</th>
+                <td data-label="Nome" class="fw-medium">{{ conta.nome }}</td>
+                <td data-label="Tipo">{{ conta.get_tipo_display }}</td>
+                <td data-label="Saldo inicial" class="text-nowrap">R$ {{ conta.saldo_inicial|floatformat:"2g" }}</td>
+                <td data-label="Saldo atual" class="text-nowrap">R$ {{ conta.saldo_atual|floatformat:"2g" }}</td>
+                <td data-label="Situação">
+                    {% if conta.ativa %}
+                        <span class="badge bg-green-lt">Ativa</span>
+                    {% else %}
+                        <span class="badge bg-secondary-lt">Inativa</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-list flex-md-nowrap">
+                        {% include "partials/acoes_listagem.html" with pk=conta.pk detalhar="financeiro:conta_detalhar" editar="financeiro:conta_editar" excluir="financeiro:conta_excluir" only %}
+                    </div>
+                </td>
             </tr>
-        </thead>
-
-        <tbody>
-            {% for conta in contas %}
-                <tr>
-                    <td>{{ conta.nome }}</td>
-                    <td>{{ conta.get_tipo_display }}</td>
-                    <td>R$ {{ conta.saldo_inicial }}</td>
-                    <td>R$ {{ conta.saldo_atual }}</td>
-                    <td>{{ conta.ativa|yesno:"Sim,Não" }}</td>
-                    <td>
-                        <a href="{% url 'financeiro:conta_detalhar' conta.pk %}">
-                            Detalhes
-                        </a>
-                        <a href="{% url 'financeiro:conta_editar' conta.pk %}">
-                            Editar
-                        </a>
-                        <a href="{% url 'financeiro:conta_excluir' conta.pk %}">
-                            Excluir
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="6">Nenhuma conta cadastrada.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% empty %}
+            <tr><td colspan="6" class="text-secondary py-4">Nenhuma conta cadastrada.</td></tr>
+        {% endfor %}
+    </tbody>
 {% endblock %}

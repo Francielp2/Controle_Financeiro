@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% comment %}Base: page-header e Responsive with actions da página Tables do Tabler.{% endcomment %}
+    <div class="page-header d-print-none mt-0 mb-3">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <h1 class="page-title" id="titulo-listagem">{% block titulo_listagem %}{% endblock %}</h1>
+            </div>
+            <div class="col-auto ms-auto">
+                {% block cadastrar %}{% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="table-responsive" tabindex="0" role="region" aria-labelledby="titulo-listagem">
+            <table class="table table-vcenter table-mobile-md card-table">
+                {% block tabela %}{% endblock %}
+            </table>
+        </div>
+    </div>
+{% endblock %}

@@ -114,6 +114,18 @@ class ViewsTests(DadosMixin, TestCase):
                 self.assertEqual(set(self.client.get(reverse(f"financeiro:{nome}_listar")).context[chave]), esperado)
         self.assertEqual(self.client.get(reverse("financeiro:inicio")).context["quantidade_contas"], 2)
 
+    def test_listagem_compromissos_mantem_acoes_por_situacao(self):
+        pendente = self.compromisso()
+        quitado = self.compromisso(valor_pago_recebido_inicial=100)
+        resposta = self.client.get(reverse("financeiro:compromisso_listar"))
+        self.assertContains(resposta, 'class="table table-vcenter table-mobile-md card-table"')
+        self.assertNotContains(resposta, 'data-bs-popper-config')
+        for acao in ("detalhar", "editar", "excluir", "registrar_movimentacao"):
+            url = reverse(f"financeiro:compromisso_{acao}", args=[pendente.pk])
+            self.assertContains(resposta, f'href="{url}"')
+        url_quitado = reverse("financeiro:compromisso_registrar_movimentacao", args=[quitado.pk])
+        self.assertNotContains(resposta, f'href="{url_quitado}"')
+
     def test_dashboard_filtra_fluxo_por_periodo_e_usuario(self):
         self.movimento()
         self.movimento(usuario=self.outro, conta_origem=None, conta_destino=self.alheia,

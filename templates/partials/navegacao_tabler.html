@@ -2,7 +2,7 @@
 {% comment %}
 Origem: dashboard-horizontal.html, blocos NAVBAR e NAVBAR MENU da demo oficial do Tabler.
 {% endcomment %}
-<header class="navbar navbar-expand-md d-print-none position-relative">
+<header class="navbar navbar-expand-md d-print-none position-static">
     <div class="container-xl">
         {% if user.is_authenticated %}
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Alternar menu principal">
@@ -15,7 +15,7 @@ Origem: dashboard-horizontal.html, blocos NAVBAR e NAVBAR MENU da demo oficial d
                aria-label="Nexo — Controle Financeiro">
                 <img src="{% static 'img/nexo-logo-claro.jpeg' %}"
                      class="navbar-brand-image w-100 object-fit-cover hide-theme-dark" alt="">
-                <img src="{% static 'img/nexo-logo-escuro.jpeg' %}"
+                <img src="{% static 'img/nexo-logo-escuro.png' %}"
                      class="navbar-brand-image w-100 object-fit-cover hide-theme-light" alt="">
             </a>
         </div>
@@ -58,9 +58,9 @@ Origem: dashboard-horizontal.html, blocos NAVBAR e NAVBAR MENU da demo oficial d
 </header>
 
 {% if user.is_authenticated %}
-    <div class="navbar-expand-md">
+    <div class="navbar-expand-md position-static">
         <div class="collapse navbar-collapse" id="navbar-menu">
-            <div class="navbar">
+            <div class="navbar position-static">
                 <div class="container-xl">
                     <div class="row flex-column flex-md-row flex-fill align-items-center">
                         <div class="col">

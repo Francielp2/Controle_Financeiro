@@ -1,55 +1,55 @@
-{% extends "base.html" %}
+{% extends "listagem.html" %}
 
 {% block title %}Usuários{% endblock %}
+{% block titulo_listagem %}Usuários{% endblock %}
 
-{% block content %}
-    <h2>Usuários</h2>
+{% block cadastrar %}
+    <a class="btn btn-primary" href="{% url 'usuarios:usuario_criar' %}">Cadastrar usuário</a>
+{% endblock %}
 
-    <p>
-    <a href="{% url 'usuarios:usuario_criar' %}">
-        Cadastrar usuário
-    </a>
-    </p>
-
-    <table class="table table-vcenter table-bordered mt-3">
-        <thead>
+{% block tabela %}
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Usuário</th>
+            <th scope="col">CPF</th>
+            <th scope="col">Telefone</th>
+            <th scope="col">Acesso</th>
+            <th scope="col" class="w-1"><span class="visually-hidden">Ações</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for usuario in usuarios %}
             <tr>
-                <th>ID</th>
-                <th>Nome</th>
-                <th>E-mail</th>
-                <th>CPF</th>
-                <th>Telefone</th>
-                <th>Staff</th>
-                <th>Ações</th>
+                <td data-label="ID">{{ usuario.pk }}</td>
+                <td data-label="Usuário">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="avatar avatar-sm bg-primary-lt" aria-hidden="true">
+                            {{ usuario.first_name|default:usuario.email|slice:":1"|upper }}
+                        </span>
+                        <div>
+                            <div class="fw-medium">{{ usuario.get_full_name|default:"—" }}</div>
+                            <div class="text-secondary text-break">{{ usuario.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td data-label="CPF">{{ usuario.cpf }}</td>
+                <td data-label="Telefone">{{ usuario.telefone }}</td>
+                <td data-label="Acesso">
+                    {% if usuario.is_staff %}
+                        <span class="badge bg-primary-lt">Equipe</span>
+                    {% else %}
+                        <span class="badge bg-secondary-lt">Usuário</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="btn-list flex-md-nowrap">
+                        {% include "partials/acoes_listagem.html" with pk=usuario.pk detalhar="usuarios:usuario_detalhar" editar="usuarios:usuario_editar" excluir="usuarios:usuario_excluir" only %}
+                    </div>
+                </td>
             </tr>
-        </thead>
-
-        <tbody>
-            {% for usuario in usuarios %}
-                <tr>
-                    <td>{{ usuario.pk }}</td>
-                    <td>{{ usuario.get_full_name|default:"-" }}</td>
-                    <td>{{ usuario.email }}</td>
-                    <td>{{ usuario.cpf }}</td>
-                    <td>{{ usuario.telefone }}</td>
-                    <td>{{ usuario.is_staff|yesno:"Sim,Não" }}</td>
-                    <td>
-                        <a class="me-2" href="{% url 'usuarios:usuario_detalhar' usuario.pk %}">
-                            Detalhes
-                        </a>
-                        <a class="me-2" href="{% url 'usuarios:usuario_editar' usuario.pk %}">
-                            Editar
-                        </a>
-                        <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">
-                            Excluir
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="7">Nenhum usuário cadastrado.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% empty %}
+            <tr><td colspan="6" class="text-secondary py-4">Nenhum usuário cadastrado.</td></tr>
+        {% endfor %}
+    </tbody>
 {% endblock %}

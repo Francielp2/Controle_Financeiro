@@ -1,57 +1,47 @@
-{% extends "base.html" %}
+{% extends "listagem.html" %}
 
 {% block title %}Movimentações{% endblock %}
+{% block titulo_listagem %}Movimentações{% endblock %}
 
-{% block content %}
-    <h2>Movimentações</h2>
+{% block cadastrar %}
+    <a class="btn btn-primary" href="{% url 'financeiro:movimentacao_criar' %}">Cadastrar movimentação</a>
+{% endblock %}
 
-    <p>
-        <a href="{% url 'financeiro:movimentacao_criar' %}">
-            Cadastrar movimentação
-        </a>
-    </p>
-
-    <table class="table table-vcenter table-bordered mt-3">
-        <thead>
+{% block tabela %}
+    <thead>
+        <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Valor</th>
+            <th scope="col">Origem</th>
+            <th scope="col">Destino</th>
+            <th scope="col">Categoria</th>
+            <th scope="col">Data</th>
+            <th scope="col" class="w-1"><span class="visually-hidden">Ações</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for movimentacao in movimentacoes %}
             <tr>
-                <th>ID</th>
-                <th>Tipo</th>
-                <th>Valor</th>
-                <th>Origem</th>
-                <th>Destino</th>
-                <th>Categoria</th>
-                <th>Data</th>
-                <th>Ações</th>
+                <td data-label="ID">{{ movimentacao.pk }}</td>
+                <td data-label="Tipo">
+                    <span class="badge {% if movimentacao.tipo == 'ENTRADA' %}bg-green-lt{% elif movimentacao.tipo == 'SAIDA' %}bg-red-lt{% else %}bg-primary-lt{% endif %}">
+                        {{ movimentacao.get_tipo_display }}
+                    </span>
+                </td>
+                <td data-label="Valor" class="fw-medium text-nowrap">R$ {{ movimentacao.valor|floatformat:"2g" }}</td>
+                <td data-label="Origem">{{ movimentacao.conta_origem|default:"—" }}</td>
+                <td data-label="Destino">{{ movimentacao.conta_destino|default:"—" }}</td>
+                <td data-label="Categoria">{{ movimentacao.categoria|default:"—" }}</td>
+                <td data-label="Data" class="text-nowrap">{{ movimentacao.data|date:"d/m/Y" }}</td>
+                <td>
+                    <div class="btn-list flex-md-nowrap">
+                        {% include "partials/acoes_listagem.html" with pk=movimentacao.pk detalhar="financeiro:movimentacao_detalhar" editar="financeiro:movimentacao_editar" excluir="financeiro:movimentacao_excluir" only %}
+                    </div>
+                </td>
             </tr>
-        </thead>
-
-        <tbody>
-            {% for movimentacao in movimentacoes %}
-                <tr>
-                    <td>{{ movimentacao.pk }}</td>
-                    <td>{{ movimentacao.get_tipo_display }}</td>
-                    <td>R$ {{ movimentacao.valor }}</td>
-                    <td>{{ movimentacao.conta_origem|default:"-" }}</td>
-                    <td>{{ movimentacao.conta_destino|default:"-" }}</td>
-                    <td>{{ movimentacao.categoria|default:"-" }}</td>
-                    <td>{{ movimentacao.data }}</td>
-                    <td>
-                        <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
-                            Detalhes
-                        </a>
-                        <a href="{% url 'financeiro:movimentacao_editar' movimentacao.pk %}">
-                            Editar
-                        </a>
-                        <a href="{% url 'financeiro:movimentacao_excluir' movimentacao.pk %}">
-                            Excluir
-                        </a>
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="8">Nenhuma movimentação cadastrada.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        {% empty %}
+            <tr><td colspan="8" class="text-secondary py-4">Nenhuma movimentação cadastrada.</td></tr>
+        {% endfor %}
+    </tbody>
 {% endblock %}

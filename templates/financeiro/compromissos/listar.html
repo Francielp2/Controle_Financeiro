@@ -1,64 +1,52 @@
-{% extends "base.html" %}
+{% extends "listagem.html" %}
 
 {% block title %}Compromissos{% endblock %}
+{% block titulo_listagem %}Compromissos financeiros{% endblock %}
 
-{% block content %}
-    <h2>Compromissos financeiros</h2>
+{% block cadastrar %}
+    <a class="btn btn-primary" href="{% url 'financeiro:compromisso_criar' %}">Cadastrar compromisso</a>
+{% endblock %}
 
-    <p>
-        <a href="{% url 'financeiro:compromisso_criar' %}">
-            Cadastrar compromisso
-        </a>
-    </p>
-
-    <table class="table table-vcenter table-bordered mt-3">
-        <thead>
+{% block tabela %}
+    <thead>
+        <tr>
+            <th scope="col">Título</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Total</th>
+            <th scope="col">Restante</th>
+            <th scope="col">Vencimento</th>
+            <th scope="col">Status</th>
+            <th scope="col" class="w-1"><span class="visually-hidden">Ações</span></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for compromisso in compromissos %}
             <tr>
-                <th>Título</th>
-                <th>Tipo</th>
-                <th>Total</th>
-                <th>Restante</th>
-                <th>Vencimento</th>
-                <th>Status</th>
-                <th>Ações</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for compromisso in compromissos %}
-                <tr>
-                    <td>{{ compromisso.titulo }}</td>
-                    <td>{{ compromisso.get_tipo_display }}</td>
-                    <td>R$ {{ compromisso.valor_total }}</td>
-                    <td>R$ {{ compromisso.valor_restante }}</td>
-                    <td>{{ compromisso.data_vencimento }}</td>
-                    <td>{{ compromisso.situacao_display }}</td>
-                    <td>
-                        <a href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">
-                            Detalhes
-                        </a>
-                        <a href="{% url 'financeiro:compromisso_editar' compromisso.pk %}">
-                            Editar
-                        </a>
-                        <a href="{% url 'financeiro:compromisso_excluir' compromisso.pk %}">
-                            Excluir
-                        </a>
+                <td data-label="Título" class="fw-medium">{{ compromisso.titulo }}</td>
+                <td data-label="Tipo">{{ compromisso.get_tipo_display }}</td>
+                <td data-label="Total" class="text-nowrap">R$ {{ compromisso.valor_total|floatformat:"2g" }}</td>
+                <td data-label="Restante" class="text-nowrap">R$ {{ compromisso.valor_restante|floatformat:"2g" }}</td>
+                <td data-label="Vencimento" class="text-nowrap">{{ compromisso.data_vencimento|date:"d/m/Y" }}</td>
+                <td data-label="Status">
+                    {% with situacao=compromisso.situacao %}
+                        <span class="badge {% if situacao == 'QUITADO' %}bg-green-lt{% elif situacao == 'ATRASADO' %}bg-red-lt{% elif situacao == 'PARCIAL' %}bg-yellow-lt{% else %}bg-secondary-lt{% endif %}">
+                            {{ compromisso.situacao_display }}
+                        </span>
+                    {% endwith %}
+                </td>
+                <td>
+                    <div class="btn-list flex-md-nowrap">
                         {% if not compromisso.esta_quitado %}
-                        <a href="{% url 'financeiro:compromisso_registrar_movimentacao' compromisso.pk %}">
-                            {% if compromisso.tipo == "PAGAR" %}
-                                Registrar pagamento
-                            {% else %}
-                                Registrar recebimento
-                            {% endif %}
-                        </a>
+                            <a class="btn btn-sm" href="{% url 'financeiro:compromisso_registrar_movimentacao' compromisso.pk %}">
+                                {% if compromisso.tipo == "PAGAR" %}Registrar pagamento{% else %}Registrar recebimento{% endif %}
+                            </a>
                         {% endif %}
-                    </td>
-                </tr>
-            {% empty %}
-                <tr>
-                    <td colspan="7">Nenhum compromisso cadastrado.</td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        {% include "partials/acoes_listagem.html" with pk=compromisso.pk detalhar="financeiro:compromisso_detalhar" editar="financeiro:compromisso_editar" excluir="financeiro:compromisso_excluir" only %}
+                    </div>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="7" class="text-secondary py-4">Nenhum compromisso cadastrado.</td></tr>
+        {% endfor %}
+    </tbody>
 {% endblock %}
