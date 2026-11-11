@@ -45,6 +45,20 @@ class ContaAdmin(admin.ModelAdmin):
     def mostrar_saldo_atual(self, conta):
         return conta.saldo_atual
 
+    def get_readonly_fields(self, request, obj=None):
+        campos = tuple(super().get_readonly_fields(request, obj))
+
+        if obj is not None:
+            possui_movimentacoes = obj.possui_movimentacoes()
+
+            if possui_movimentacoes or obj.compromissos.exists():
+                campos += ("usuario",)
+
+            if possui_movimentacoes:
+                campos += ("saldo_inicial",)
+
+        return campos
+
 
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):

@@ -10,7 +10,17 @@ from .models import (
 
 # FORMULARIO DE CONTAS
 class ContaForm(forms.ModelForm):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance.pk and self.instance.possui_movimentacoes():
+            self.fields["saldo_inicial"].disabled = True
+            self.fields["saldo_inicial"].help_text = (
+                "O saldo inicial não pode ser alterado porque existem movimentações vinculadas à conta. "
+            )
     # CONFIGURACAO DO MODELO CONTA
+
     class Meta:
         model = Conta
         fields = (

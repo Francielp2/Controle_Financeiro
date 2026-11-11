@@ -81,9 +81,47 @@ class Conta(models.Model):
             or self.movimentacoes_destino.exists()
         )
 
+    # Bloqueia Alterações que comprometem os registros vinculados
+
+    def validar_alteracoes_com_vinculos(self):
+        if not self.pk:
+            return
+
+        conta_anterior = Conta.objects.filter(pk=self.pk).first()
+
+        if conta_anterior is None:
+            return
+
+        possui_movimentacoes = self.possui_movimentacoes()
+
+        possui_vinculos = (
+            possui_movimentacoes or self.compromissos.exists()
+        )
+
+        erros = []
+
+        if (
+            possui_vinculos and self.usuario_id != conta_anterior.usuario_id
+        ):
+            erros.append(
+                "O proprietário da conta não pode ser alterado porque existem movimentações ou compromissos vinculados"
+            )
+
+        if (
+            possui_movimentacoes and self.saldo_inicial != conta_anterior.saldo_inicial
+        ):
+
+            erros.append(
+                "O saldo inicial não pode ser alterado porque existem movimentações vinculadas à conta"
+            )
+        if erros:
+            raise ValidationError(erros)
     # VALIDA REGRAS DA CONTA
+
     def clean(self):
         super().clean()
+
+        self.validar_alteracoes_com_vinculos()
 
         if self.usuario_id and self.nome:
             conta_existente = Conta.objects.filter(
