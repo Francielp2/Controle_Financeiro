@@ -1,30 +1,32 @@
 from datetime import date
-from django.db.models import Q
+from django.db.models import Q, Sum
 from financeiro import consultas
 from decimal import Decimal, InvalidOperation
+from django.utils import timezone
 from financeiro.models import Movimentacao, Conta, Categoria, CompromissoFinanceiro
 
 
-# Retorna o período e os totais de entradas, saídas e resultado; reutiliza resumo_periodo de consultas.py.
-def consultar_resumo_periodo(usuario, inicio, fim):
-    try:
-        data_inicio = date.fromisoformat(inicio)
-        data_fim = date.fromisoformat(fim)
-    except (TypeError, ValueError):
-        raise ValueError("As datas devem usar o formato AAAA-MM-DD.") from None
+# Retorna o período e os totais de entradas, saídas e resultado com filtros combináveis.
+def consultar_resumo_periodo(usuario, inicio, fim, **filtros):
+    fluxo = consultar_fluxo_mensal(
+        usuario, inicio, fim, **filtros
+    )
 
-    if data_inicio > data_fim:
-        raise ValueError("A data inicial não pode ser posterior à final.")
-
-    # A consulta financeira aplica o filtro pelo usuário recebido do servidor.
-    totais = consultas.resumo_periodo(usuario, data_inicio, data_fim)
+    entradas = sum(
+        (Decimal(mes["entradas"]) for mes in fluxo["meses"]),
+        Decimal("0.00"),
+    )
+    saidas = sum(
+        (Decimal(mes["saidas"]) for mes in fluxo["meses"]),
+        Decimal("0.00"),
+    )
 
     return {
-        "inicio": data_inicio.isoformat(),
-        "fim": data_fim.isoformat(),
-        "entradas": consultas.valor_para_texto(totais["entradas"]),
-        "saidas": consultas.valor_para_texto(totais["saidas"]),
-        "resultado": consultas.valor_para_texto(totais["resultado"]),
+        "inicio": fluxo["inicio"],
+        "fim": fluxo["fim"],
+        "entradas": consultas.valor_para_texto(entradas),
+        "saidas": consultas.valor_para_texto(saidas),
+        "resultado": consultas.valor_para_texto(entradas - saidas),
     }
 
 
@@ -437,4 +439,127 @@ def consultar_totais_por_categoria(usuario, inicio, fim, **filtros):
             }
             for grupo in ordenados
         ],
+    }
+
+
+# Retorna a quantidade e os saldos das contas selecionadas, atuais ou até uma data, além do saldo total.
+def consultar_saldos(usuario, ate=None, contas=None, ativa=None, tipo=None):
+    try:
+        data_limite = date.fromisoformat(ate) if ate is not None else None
+    except (TypeError, ValueError):
+        raise ValueError("A data deve usar o formato AAAA-MM-DD.") from None
+
+    if ativa is not None and not isinstance(ativa, bool):
+        raise ValueError("O estado da conta deve ser verdadeiro ou falso.")
+    if tipo is not None and tipo not in Conta.Tipo.values:
+        raise ValueError("Tipo de conta inválido.")
+
+    ids = _ids_por_nomes(Conta, usuario, contas)
+    selecionadas = Conta.objects.filter(usuario=usuario)
+
+    if ids is not None:
+        selecionadas = selecionadas.filter(id__in=ids)
+    if ativa is not None:
+        selecionadas = selecionadas.filter(ativa=ativa)
+    if tipo is not None:
+        selecionadas = selecionadas.filter(tipo=tipo)
+    if data_limite is not None:
+        selecionadas = selecionadas.filter(
+            data_criacao__date__lte=data_limite
+        )
+
+    dados = []
+    total = Decimal("0.00")
+
+    for conta in selecionadas.order_by("nome"):
+        if data_limite is None:
+            saldo = conta.saldo_atual
+        else:
+            entradas = (
+                conta.movimentacoes_destino.filter(
+                    usuario=usuario, data__lte=data_limite
+                ).aggregate(total=Sum("valor"))["total"]
+                or Decimal("0.00")
+            )
+            saidas = (
+                conta.movimentacoes_origem.filter(
+                    usuario=usuario, data__lte=data_limite
+                ).aggregate(total=Sum("valor"))["total"]
+                or Decimal("0.00")
+            )
+            saldo = conta.saldo_inicial + entradas - saidas
+
+        total += saldo
+        dados.append({
+            "id": conta.id,
+            "nome": conta.nome,
+            "ativa": conta.ativa,
+            "saldo": consultas.valor_para_texto(saldo),
+        })
+
+    return {
+        "ate": data_limite.isoformat() if data_limite else None,
+        "quantidade": len(dados),
+        "saldo_total": consultas.valor_para_texto(total),
+        "contas": dados,
+    }
+
+
+# Retorna os saldos mensais das contas selecionadas e, opcionalmente, o saldo de cada conta.
+def consultar_saldos_mensais(
+    usuario, inicio, fim, contas=None, ativa=None, tipo=None,
+    detalhar_contas=False,
+):
+    try:
+        data_inicio = date.fromisoformat(inicio)
+        data_fim = date.fromisoformat(fim)
+    except (TypeError, ValueError):
+        raise ValueError("As datas devem usar o formato AAAA-MM-DD.") from None
+
+    if data_inicio > data_fim:
+        raise ValueError("A data inicial não pode ser posterior à final.")
+    if not isinstance(detalhar_contas, bool):
+        raise ValueError("Detalhar contas deve ser verdadeiro ou falso.")
+
+    # O mês atual só pode mostrar o saldo até hoje.
+    fim_considerado = min(data_fim, timezone.localdate())
+    if data_inicio > fim_considerado:
+        raise ValueError("O período informado ainda não começou.")
+
+    atual = data_inicio.replace(day=1)
+    meses = []
+
+    while atual <= fim_considerado:
+        fechamento = min(
+            consultas.periodo_do_mes(atual)[1],
+            fim_considerado,
+        )
+        saldos = consultar_saldos(
+            usuario,
+            ate=fechamento.isoformat(),
+            contas=contas,
+            ativa=ativa,
+            tipo=tipo,
+        )
+
+        item = {
+            "mes": atual.strftime("%Y-%m"),
+            "ate": fechamento.isoformat(),
+            "quantidade_contas": saldos["quantidade"],
+            "saldo_total": saldos["saldo_total"],
+        }
+        if detalhar_contas:
+            item["contas"] = saldos["contas"]
+
+        meses.append(item)
+        if atual.month == 12:
+            atual = date(atual.year + 1, 1, 1)
+        else:
+            atual = date(atual.year, atual.month + 1, 1)
+
+    return {
+        "inicio": data_inicio.isoformat(),
+        "fim_solicitado": data_fim.isoformat(),
+        "fim_considerado": fim_considerado.isoformat(),
+        "meses": meses,
     }
