@@ -29,3 +29,6 @@ htmlcov/
 # Sistema operacional
 .DS_Store
 Thumbs.db
+
+#Docuemntação sensível
+docs/ITEM_15_TESTES.md
