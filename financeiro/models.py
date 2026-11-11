@@ -1,7 +1,7 @@
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Q, Sum
 from django.db.models.functions import Lower
 from django.utils import timezone
@@ -87,7 +87,8 @@ class Conta(models.Model):
             ).exclude(pk=self.pk)
 
             if conta_existente.exists():
-                raise ValidationError({"nome": "Já existe uma conta com este nome."})
+                raise ValidationError(
+                    {"nome": "Já existe uma conta com este nome."})
 
     # SALVA A CONTA APOS VALIDACAO
     def save(self, *args, **kwargs):
@@ -155,7 +156,8 @@ class Categoria(models.Model):
             ).exclude(pk=self.pk)
 
             if categoria_existente.exists():
-                raise ValidationError({"nome": "Esta categoria já está cadastrada."})
+                raise ValidationError(
+                    {"nome": "Esta categoria já está cadastrada."})
 
     # SALVA A CATEGORIA APOS VALIDACAO
     def save(self, *args, **kwargs):
@@ -261,6 +263,25 @@ class CompromissoFinanceiro(models.Model):
         restante = self.valor_total - self.valor_pago_recebido
         return max(restante, Decimal("0.00"))
 
+    def recalcular_valor_pago(self):
+        total = (
+            self.movimentacoes.aggregate(total=Sum("valor"))["total"]
+            or Decimal("0.00")
+        )
+
+        if total > self.valor_total:
+            raise ValidationError(
+                {
+                    "valor_pago_recebido": (
+                        "A soma das movimentações não pode superar o valor total."
+                    )
+                }
+            )
+
+        self.valor_pago_recebido = total
+        self.atualizar_status()
+        self.save(update_fields=["valor_pago_recebido", "status"])
+
     # VERIFICA SE O COMPROMISSO ESTA QUITADO
     def esta_quitado(self):
         return self.valor_pago_recebido >= self.valor_total
@@ -277,7 +298,8 @@ class CompromissoFinanceiro(models.Model):
         super().clean()
 
         if self.valor_total is not None and self.valor_total <= 0:
-            raise ValidationError({"valor_total": "O valor deve ser maior que zero."})
+            raise ValidationError(
+                {"valor_total": "O valor deve ser maior que zero."})
 
         if self.valor_pago_recebido is not None and self.valor_pago_recebido < 0:
             raise ValidationError(
@@ -470,10 +492,12 @@ class Movimentacao(models.Model):
     # VALIDA REGRAS DE TRANSFERENCIA
     def validar_transferencia(self):
         if not self.conta_origem:
-            raise ValidationError({"conta_origem": "Informe a conta de origem."})
+            raise ValidationError(
+                {"conta_origem": "Informe a conta de origem."})
 
         if not self.conta_destino:
-            raise ValidationError({"conta_destino": "Informe a conta de destino."})
+            raise ValidationError(
+                {"conta_destino": "Informe a conta de destino."})
 
         if self.conta_origem == self.conta_destino:
             raise ValidationError(
@@ -512,7 +536,8 @@ class Movimentacao(models.Model):
                 saldo_disponivel += movimentacao_anterior.valor
 
         if saldo_disponivel < self.valor:
-            raise ValidationError({"valor": "Saldo insuficiente na conta de origem."})
+            raise ValidationError(
+                {"valor": "Saldo insuficiente na conta de origem."})
 
     # VALIDA COMPROMISSO FINANCEIRO VINCULADO
     def validar_compromisso_financeiro(self):
@@ -610,7 +635,8 @@ class Movimentacao(models.Model):
         super().clean()
 
         if self.valor is not None and self.valor <= 0:
-            raise ValidationError({"valor": "O valor deve ser maior que zero."})
+            raise ValidationError(
+                {"valor": "O valor deve ser maior que zero."})
 
         if self.conta_origem_id:
             if self.conta_origem.usuario_id != self.usuario_id:
@@ -696,9 +722,44 @@ class Movimentacao(models.Model):
 
     # SALVA A MOVIMENTACAO APOS VALIDACAO
     def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
+        compromisso_anterior_id = None
+
+        if self.pk:
+            compromisso_anterior_id = (
+                Movimentacao.objects.filter(pk=self.pk)
+                .values_list("compromisso_financeiro_id", flat=True)
+                .first()
+            )
+
+        with transaction.atomic():
+            self.full_clean()
+            super().save(*args, **kwargs)
+
+            compromisso_para_recalcular = {
+                compromisso_anterior_id,
+                self.compromisso_financeiro_id,
+            }
+
+            for compromisso_id in compromisso_para_recalcular:
+                if compromisso_id:
+                    CompromissoFinanceiro.objects.get(
+                        pk=compromisso_id
+                    ).recalcular_valor_pago()
+
+    def delete(self, *args, **kwargs):
+        compromisso_id = self.compromisso_financeiro_id
+
+        with transaction.atomic():
+            resultado = super().delete(*args, **kwargs)
+
+            if compromisso_id:
+                CompromissoFinanceiro.objects.get(
+                    pk=compromisso_id,
+                ).recalcular_valor_pago()
+
+            return resultado
 
     # REPRESENTACAO EM TEXTO DA MOVIMENTACAO
+
     def __str__(self):
         return f"{self.get_tipo_display()} — R$ {self.valor:.2f}"
