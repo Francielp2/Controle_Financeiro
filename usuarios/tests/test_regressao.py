@@ -214,6 +214,29 @@ class UsuariosViewsTests(DadosMixin, TestCase):
         self.client.force_login(User.objects.create_user(username="semperfil"))
         self.assertRedirects(self.client.get(reverse("usuarios:perfil")), reverse("admin:index"), fetch_redirect_response=False)
 
+    def test_perfil_exibe_links_financeiros_apenas_ao_titular(self):
+        movimento = self.movimento(descricao="Descrição privada da movimentação")
+        detalhe = reverse("usuarios:usuario_detalhar", args=[self.u.pk])
+        conta = reverse("financeiro:conta_detalhar", args=[self.conta.pk])
+        movimentacao = reverse("financeiro:movimentacao_detalhar", args=[movimento.pk])
+
+        self.client.force_login(self.u)
+        perfil = self.client.get(reverse("usuarios:perfil"), follow=True)
+        self.assertRedirects(perfil, detalhe)
+        self.assertContains(perfil, 'class="timeline mb-0"')
+        self.assertContains(perfil, f'href="{conta}"')
+        self.assertContains(perfil, f'href="{movimentacao}"')
+        self.assertContains(perfil, movimento.descricao)
+
+        self.outro.is_staff = True
+        self.outro.save()
+        self.client.force_login(self.outro)
+        perfil_alheio = self.client.get(detalhe)
+        self.assertContains(perfil_alheio, "Últimas movimentações")
+        self.assertNotContains(perfil_alheio, f'href="{conta}"')
+        self.assertNotContains(perfil_alheio, f'href="{movimentacao}"')
+        self.assertNotContains(perfil_alheio, movimento.descricao)
+
     def test_cadastro_erro_save_tratado(self):
         """Validação tardia de unicidade deve reapresentar cadastro em vez de erro 500."""
         with patch.object(Usuario, "save", side_effect=ValidationError("Duplicidade concorrente")):

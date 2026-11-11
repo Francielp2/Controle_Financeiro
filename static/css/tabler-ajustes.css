@@ -8,3 +8,7 @@ html:not([data-bs-theme="dark"]) {
     --tblr-secondary: var(--tblr-gray-600);
     --tblr-muted: var(--tblr-gray-600);
 }
+
+.nexo-logo {
+    width: 7.5rem;
+}

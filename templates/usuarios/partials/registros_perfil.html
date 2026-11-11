@@ -1,0 +1,16 @@
+<div>
+    <h3 class="subheader mb-1">{{ titulo }}</h3>
+    <ul class="list-group list-group-flush mb-0">
+        {% for item in itens %}
+            <li class="list-group-item px-0 py-2 text-break">
+                {% if user.pk == usuario.pk %}
+                    <a href="{% url rota item.pk %}">{{ item }}</a>
+                {% else %}
+                    {{ item }}
+                {% endif %}
+            </li>
+        {% empty %}
+            <li class="list-group-item px-0 py-2 text-secondary">{{ vazio }}</li>
+        {% endfor %}
+    </ul>
+</div>

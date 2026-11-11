@@ -1,85 +1,129 @@
 {% extends "base.html" %}
 
-{% block title %}Detalhes do usuário{% endblock %}
+{% block title %}{% if user.pk == usuario.pk %}Meu perfil{% else %}Detalhes do usuário{% endif %}{% endblock %}
 
 {% block content %}
-    <h2>Detalhes do usuário</h2>
+    {% comment %}Base: Profile e HeaderProfile da demo oficial do Tabler.{% endcomment %}
+    <div class="page-header d-print-none mt-0 mb-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-auto">
+                <span class="avatar avatar-lg bg-primary-lt" aria-hidden="true">
+                    {{ usuario.first_name|default:usuario.email|slice:":1"|upper }}
+                </span>
+            </div>
+            <div class="col">
+                <div class="page-pretitle">{% if user.pk == usuario.pk %}Meu perfil{% else %}Detalhes do usuário{% endif %}</div>
+                <h1 class="fw-bold m-0">{{ usuario.get_full_name|default:usuario.email }}</h1>
+                <div class="text-secondary text-break">{{ usuario.email }}</div>
+            </div>
+            <div class="col-12 col-md-auto ms-auto">
+                <div class="btn-list">
+                    {% if user.is_staff %}
+                        <a class="btn" href="{% url 'usuarios:usuario_listar' %}">Voltar</a>
+                    {% endif %}
+                    <a class="btn btn-primary" href="{% url 'usuarios:usuario_editar' usuario.pk %}">Editar perfil</a>
+                    <a class="btn btn-outline-danger" href="{% url 'usuarios:usuario_excluir' usuario.pk %}">Excluir perfil</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <p><strong>ID:</strong> {{ usuario.pk }}</p>
-    <p><strong>Nome:</strong> {{ usuario.get_full_name|default:"-" }}</p>
-    <p><strong>E-mail:</strong> {{ usuario.email }}</p>
-    <p><strong>CPF:</strong> {{ usuario.cpf }}</p>
-    <p><strong>RG:</strong> {{ usuario.rg }}</p>
-    <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
-    <p><strong>Staff:</strong> {{ usuario.is_staff|yesno:"Sim,Não" }}</p>
+    <div class="row g-3">
+        <section class="col-12 col-lg-8" aria-labelledby="perfil-atividade">
+            <h2 id="perfil-atividade" class="mb-3">Últimas movimentações</h2>
+            {% if movimentacoes %}
+                <ul class="timeline mb-0">
+                    {% for movimentacao in movimentacoes %}
+                        <li class="timeline-event">
+                            <div class="timeline-event-icon bg-primary-lt" aria-hidden="true">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                     class="icon" fill="none" stroke="currentColor" stroke-width="2"
+                                     stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                                    <path d="M16.7 8a3 3 0 0 0 -2.7 -2h-4a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-4a3 3 0 0 1 -2.7 -2" />
+                                    <path d="M12 3v3m0 12v3" />
+                                </svg>
+                            </div>
+                            <div class="card timeline-event-card">
+                                <div class="card-body">
+                                    <div class="d-flex flex-wrap align-items-baseline justify-content-between gap-2">
+                                        <h3 class="h4 mb-0">
+                                            {% if user.pk == usuario.pk %}
+                                                <a class="text-reset" href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">{{ movimentacao.get_tipo_display }}</a>
+                                            {% else %}
+                                                {{ movimentacao.get_tipo_display }}
+                                            {% endif %}
+                                        </h3>
+                                        <time class="text-secondary small" datetime="{{ movimentacao.data|date:'Y-m-d' }}T{{ movimentacao.hora|time:'H:i' }}">
+                                            {{ movimentacao.data|date:"d/m/Y" }} às {{ movimentacao.hora|time:"H:i" }}
+                                        </time>
+                                    </div>
+                                    <div class="fw-medium mt-1">R$ {{ movimentacao.valor|floatformat:"2g" }}</div>
+                                    {% if user.pk == usuario.pk and movimentacao.descricao %}
+                                        <p class="text-secondary text-break mb-0 mt-1">{{ movimentacao.descricao }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="card">
+                    <div class="card-body text-secondary">Nenhuma movimentação cadastrada.</div>
+                </div>
+            {% endif %}
+        </section>
 
-    <p class="d-flex flex-wrap gap-2">
-        <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
-            Editar
-        </a>
-        <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">
-            Excluir
-        </a>
-        {% if user.is_staff %}
-            <a href="{% url 'usuarios:usuario_listar' %}">
-                Voltar
-            </a>
-        {% endif %}
-    </p>
+        <div class="col-12 col-lg-4">
+            <div class="row row-cards">
+                <div class="col-12">
+                    <section class="card" aria-labelledby="perfil-dados">
+                        <div class="card-body">
+                            <h2 class="card-title" id="perfil-dados">Dados do perfil</h2>
+                            <dl class="datagrid">
+                                <div class="datagrid-item">
+                                    <dt class="datagrid-title">Telefone</dt>
+                                    <dd class="datagrid-content mb-0">{{ usuario.telefone }}</dd>
+                                </div>
+                                <div class="datagrid-item">
+                                    <dt class="datagrid-title">CPF</dt>
+                                    <dd class="datagrid-content mb-0">{{ usuario.cpf }}</dd>
+                                </div>
+                                <div class="datagrid-item">
+                                    <dt class="datagrid-title">RG</dt>
+                                    <dd class="datagrid-content mb-0">{{ usuario.rg }}</dd>
+                                </div>
+                                <div class="datagrid-item">
+                                    <dt class="datagrid-title">ID</dt>
+                                    <dd class="datagrid-content mb-0">{{ usuario.pk }}</dd>
+                                </div>
+                                <div class="datagrid-item">
+                                    <dt class="datagrid-title">Tipo de acesso</dt>
+                                    <dd class="datagrid-content mb-0">
+                                        {% if usuario.is_staff %}
+                                            <span class="badge bg-primary-lt">Equipe</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary-lt">Usuário</span>
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </section>
+                </div>
 
-    <h3>Contas</h3>
-
-    <ul>
-        {% for conta in contas %}
-            <li>
-                <a href="{% url 'financeiro:conta_detalhar' conta.pk %}">
-                    {{ conta.nome }}
-                </a>
-            </li>
-        {% empty %}
-            <li>Nenhuma conta cadastrada.</li>
-        {% endfor %}
-    </ul>
-
-    <h3>Categorias</h3>
-
-    <ul>
-        {% for categoria in categorias %}
-            <li>
-                <a href="{% url 'financeiro:categoria_detalhar' categoria.pk %}">
-                    {{ categoria }}
-                </a>
-            </li>
-        {% empty %}
-            <li>Nenhuma categoria cadastrada.</li>
-        {% endfor %}
-    </ul>
-
-    <h3>Compromissos</h3>
-
-    <ul>
-        {% for compromisso in compromissos %}
-            <li>
-                <a href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">
-                    {{ compromisso }}
-                </a>
-            </li>
-        {% empty %}
-            <li>Nenhum compromisso cadastrado.</li>
-        {% endfor %}
-    </ul>
-
-    <h3>Últimas movimentações</h3>
-
-    <ul>
-        {% for movimentacao in movimentacoes %}
-            <li>
-                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
-                    {{ movimentacao }}
-                </a>
-            </li>
-        {% empty %}
-            <li>Nenhuma movimentação cadastrada.</li>
-        {% endfor %}
-    </ul>
+                <div class="col-12">
+                    <section class="card" aria-labelledby="perfil-registros">
+                        <div class="card-body">
+                            <h2 class="card-title" id="perfil-registros">Registros financeiros</h2>
+                            <div class="d-grid gap-3">
+                                {% include "usuarios/partials/registros_perfil.html" with titulo="Contas" itens=contas rota="financeiro:conta_detalhar" vazio="Nenhuma conta cadastrada." %}
+                                {% include "usuarios/partials/registros_perfil.html" with titulo="Categorias" itens=categorias rota="financeiro:categoria_detalhar" vazio="Nenhuma categoria cadastrada." %}
+                                {% include "usuarios/partials/registros_perfil.html" with titulo="Compromissos" itens=compromissos rota="financeiro:compromisso_detalhar" vazio="Nenhum compromisso cadastrado." %}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
 {% endblock %}
