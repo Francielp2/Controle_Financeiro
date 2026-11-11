@@ -1,0 +1,40 @@
+<script>
+    function aplicarMascaraCPF(valor) {
+        return valor
+            .replace(/\D/g, "")
+            .slice(0, 11)
+            .replace(/(\d{3})(\d)/, "$1.$2")
+            .replace(/(\d{3})(\d)/, "$1.$2")
+            .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    }
+
+    function aplicarMascaraTelefone(valor) {
+        const numeros = valor.replace(/\D/g, "").slice(0, 11);
+
+        if (numeros.length <= 10) {
+            return numeros
+                .replace(/(\d{2})(\d)/, "($1) $2")
+                .replace(/(\d{4})(\d)/, "$1-$2");
+        }
+
+        return numeros
+            .replace(/(\d{2})(\d)/, "($1) $2")
+            .replace(/(\d{5})(\d)/, "$1-$2");
+    }
+
+    document.querySelectorAll("[data-mask='cpf']").forEach(function (campo) {
+        campo.addEventListener("input", function () {
+            campo.value = aplicarMascaraCPF(campo.value);
+        });
+
+        campo.value = aplicarMascaraCPF(campo.value);
+    });
+
+    document.querySelectorAll("[data-mask='telefone']").forEach(function (campo) {
+        campo.addEventListener("input", function () {
+            campo.value = aplicarMascaraTelefone(campo.value);
+        });
+
+        campo.value = aplicarMascaraTelefone(campo.value);
+    });
+</script>

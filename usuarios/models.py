@@ -4,7 +4,37 @@ from django.db import models
 import re
 
 
+def erro_validacao_cpf(cpf):
+    cpf = re.sub(r"\D", "", cpf or "")
+    if not cpf:
+        return "O CPF é obrigatório."
+
+    if len(cpf) != 11:
+        return "O CPF deve possuir 11 dígitos."
+
+    if cpf == cpf[0] * 11:
+        return "CPF inválido."
+
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    digito_1 = (soma * 10) % 11
+
+    if digito_1 == 10:
+        digito_1 = 0
+
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    digito_2 = (soma * 10) % 11
+
+    if digito_2 == 10:
+        digito_2 = 0
+
+    if cpf[-2:] != f"{digito_1}{digito_2}":
+        return "CPF inválido."
+
+    return None
+
 # MODELO DE USUARIO DO SISTEMA
+
+
 class Usuario(User):
     cpf = models.CharField(
         max_length=11,
@@ -37,14 +67,10 @@ class Usuario(User):
         if email_existente.exists():
             raise ValidationError({"email": "Este e-mail já está cadastrado."})
 
-         # CPF
-        cpf_limpo = re.sub(r"\D", "", self.cpf or "")
+        erro_cpf = erro_validacao_cpf(self.cpf)
 
-        if not cpf_limpo:
-            raise ValidationError({"cpf": "O CPF é obrigatório."})
-
-        if len(cpf_limpo) != 11:
-            raise ValidationError({"cpf": "O CPF deve possuir 11 dígitos."})
+        if erro_cpf:
+            raise ValidationError({"cpf": erro_cpf})
 
        # RG
         rg_limpo = re.sub(r"[^A-Za-z0-9]", "", self.rg or "")

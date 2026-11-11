@@ -8,8 +8,40 @@ from django.contrib.auth.forms import (
 from .models import Usuario
 
 
+class UsuarioMascaraFormMixin(forms.Form):
+    cpf = forms.CharField(
+        max_length=14,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "000.000.000-00",
+                "data-mask": "cpf",
+            }
+        ),
+    )
+
+    telefone = forms.CharField(
+        max_length=15,
+        widget=forms.TextInput(
+            attrs={
+                "placeholder": "(00) 00000-0000",
+                "data-mask": "telefone",
+            }
+        ),
+    )
+
+    def clean_cpf(self):
+        cpf = self.cleaned_data["cpf"]
+        return "".join(caractere for caractere in cpf if caractere.isdigit())
+
+    def clean_telefone(self):
+        telefone = self.cleaned_data["telefone"]
+        return "".join(
+            caractere for caractere in telefone if caractere.isdigit()
+        )
+
+
 # FORMULARIO DE CRIACAO DE USUARIOS
-class UsuarioCreationForm(UserCreationForm):
+class UsuarioCreationForm(UsuarioMascaraFormMixin, UserCreationForm):
     # CONFIGURACAO DO MODEl USUARIO
     class Meta(UserCreationForm.Meta):
         model = Usuario
@@ -36,7 +68,7 @@ class UsuarioChangeForm(UserChangeForm):
 
 
 # FORMULARIO DE EDICAO DE USUARIOS NO CRUD
-class UsuarioUpdateForm(forms.ModelForm):
+class UsuarioUpdateForm(UsuarioMascaraFormMixin, forms.ModelForm):
     """
     Formulário usado no CRUD comum.
     Não altera a senha.
@@ -65,7 +97,7 @@ class LoginForm(AuthenticationForm):
         return email.strip().lower()
 
 
-class UsuarioStaffCreationForm(UserCreationForm):
+class UsuarioStaffCreationForm(UsuarioMascaraFormMixin, UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = Usuario

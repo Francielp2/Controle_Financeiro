@@ -545,7 +545,7 @@ class Movimentacao(models.Model):
                 }
             )
 
-    # VALIDA SALDO DISPONIVEL
+    # VALIDA SALDO DISPONIVEL(regra desativada por opção de negócio)
     # def validar_saldo(self):
     #     if not self.conta_origem:
     #         return
