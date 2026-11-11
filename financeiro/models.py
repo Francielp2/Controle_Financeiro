@@ -279,7 +279,6 @@ class CompromissoFinanceiro(models.Model):
             )
 
         self.valor_pago_recebido = total
-        self.atualizar_status()
         self.save(update_fields=["valor_pago_recebido", "status"])
 
     # VERIFICA SE O COMPROMISSO ESTA QUITADO
@@ -292,6 +291,23 @@ class CompromissoFinanceiro(models.Model):
             self.data_vencimento < timezone.localdate()
             and not self.esta_quitado()
         )
+
+    @property
+    def situacao(self):
+        if self.esta_quitado():
+            return self.Status.QUITADO
+
+        if self.esta_vencido():
+            return self.Status.ATRASADO
+
+        if self.valor_pago_recebido > 0:
+            return self.Status.PARCIAL
+
+        return self.Status.PENDENTE
+
+    @property
+    def situacao_display(self):
+        return self.Status(self.situacao).label
 
     # VALIDA REGRAS DO COMPROMISSO
     def clean(self):
@@ -363,14 +379,7 @@ class CompromissoFinanceiro(models.Model):
 
     # ATUALIZA O STATUS DO COMPROMISSO
     def atualizar_status(self):
-        if self.esta_quitado():
-            self.status = self.Status.QUITADO
-        elif self.valor_pago_recebido > 0:
-            self.status = self.Status.PARCIAL
-        elif self.esta_vencido():
-            self.status = self.Status.ATRASADO
-        else:
-            self.status = self.Status.PENDENTE
+        self.status = self.situacao
 
     # REGISTRA PAGAMENTO DO COMPROMISSO
     def registrar_pagamento(self, valor):

@@ -32,7 +32,7 @@
                     <td>R$ {{ compromisso.valor_total }}</td>
                     <td>R$ {{ compromisso.valor_restante }}</td>
                     <td>{{ compromisso.data_vencimento }}</td>
-                    <td>{{ compromisso.get_status_display }}</td>
+                    <td>{{ compromisso.situacao_display }}</td>
                     <td>
                         <a href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">
                             Detalhes

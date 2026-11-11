@@ -16,7 +16,7 @@
     </p>
     <p><strong>Restante:</strong> R$ {{ compromisso.valor_restante }}</p>
     <p><strong>Vencimento:</strong> {{ compromisso.data_vencimento }}</p>
-    <p><strong>Status:</strong> {{ compromisso.get_status_display }}</p>
+    <p><strong>Status:</strong> {{ compromisso.situacao_display }}</p>
 
     <p>
         <a href="{% url 'financeiro:compromisso_editar' compromisso.pk %}">
