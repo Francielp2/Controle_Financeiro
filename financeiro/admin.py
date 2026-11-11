@@ -82,12 +82,11 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
         "valor_pago_recebido",
         "mostrar_valor_restante",
         "data_vencimento",
-        "status",
+        "mostrar_situacao"
     )
 
     list_filter = (
         "tipo",
-        "status",
         "data_vencimento",
     )
 
@@ -100,7 +99,7 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
 
     readonly_fields = (
         "data_criacao",
-        "status",
+        "mostrar_situacao",
         "mostrar_valor_restante",
         "valor_pago_recebido",
     )
@@ -113,9 +112,15 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
 
     date_hierarchy = "data_vencimento"
 
+    exclude = ("status",)
+
     @admin.display(description="Valor restante")
     def mostrar_valor_restante(self, compromisso):
         return compromisso.valor_restante()
+
+    @admin.display(description="Situação")
+    def mostrar_situacao(self, compromisso):
+        return compromisso.situacao_display
 
     def get_readonly_fields(self, request, obj=None):
         campos = tuple(super().get_readonly_fields(request, obj))
