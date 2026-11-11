@@ -85,8 +85,24 @@ def preparar_acao(usuario, acao, dados):
     }
 
 
-# Valida e guarda a proposta, retornando a prévia e o identificador para confirmação.
+# Completa os padrões, valida e guarda a proposta; retorna a prévia e o identificador para confirmação.
 def criar_acao_pendente(usuario, acao, dados):
+    if isinstance(dados, dict):
+        dados = dados.copy()
+
+        if acao in ("cadastrar_conta", "cadastrar_categoria"):
+            dados.setdefault("ativa", True)
+
+        if acao == "registrar_movimentacao":
+            agora = timezone.localtime()
+            dados.setdefault("data", agora.date().isoformat())
+            dados.setdefault(
+                "hora",
+                agora.time().replace(second=0, microsecond=0).isoformat(
+                    timespec="minutes"
+                ),
+            )
+
     previa = preparar_acao(usuario, acao, dados)
     if not previa["valido"]:
         return previa

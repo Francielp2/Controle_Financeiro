@@ -6,16 +6,8 @@
 <h2>Chat financeiro</h2>
 <p>Página provisória para testar as consultas e prévias da IA.</p>
 
-<div id="mensagens">
-    {% for item in historico %}
-        <p>
-            <strong>
-                {% if item.role == "user" %}Você{% else %}IA{% endif %}:
-            </strong>
-            {{ item.content }}
-        </p>
-    {% endfor %}
-</div>
+<div id="mensagens"></div>
+<button id="ocultar-historico" type="button">Ocultar histórico</button>
 
 <form id="form-chat">
     {% csrf_token %}
@@ -29,6 +21,11 @@
     const campo = document.getElementById("mensagem");
     const mensagens = document.getElementById("mensagens");
     const botao = document.getElementById("enviar");
+
+    // Remove as mensagens visíveis; novas respostas continuam aparecendo.
+    document.getElementById("ocultar-historico").addEventListener("click", function () {
+        mensagens.replaceChildren();
+    });
 
     // Mostra texto sem interpretá-lo como HTML.
     function mostrarMensagem(remetente, texto) {
@@ -78,6 +75,54 @@
                 detalhes.style.overflowWrap = "anywhere";
                 detalhes.textContent = JSON.stringify(dados.resultados, null, 2);
                 mensagens.appendChild(detalhes);
+
+                for (const item of dados.resultados) {
+                    if (item.ferramenta !== "propor_acao" ||
+                        !item.dados || !item.dados.id_acao) {
+                        continue;
+                    }
+
+                    const confirmar = document.createElement("button");
+                    confirmar.type = "button";
+                    confirmar.textContent = "Confirmar e gravar";
+                    mensagens.appendChild(confirmar);
+
+                    confirmar.addEventListener("click", async function () {
+                        confirmar.disabled = true;
+
+                        try {
+                            const resposta = await fetch("{% url 'chat_ia:confirmar' %}", {
+                                method: "POST",
+                                credentials: "same-origin",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "X-CSRFToken": formulario.querySelector(
+                                        "[name=csrfmiddlewaretoken]"
+                                    ).value
+                                },
+                                body: JSON.stringify({id_acao: item.dados.id_acao})
+                            });
+
+                            const resultado = await resposta.json();
+
+                            if (resultado.confirmada) {
+                                mostrarMensagem(
+                                    "Sistema",
+                                    "Registro " + resultado.registro_id + " criado."
+                                );
+                            } else {
+                                mostrarMensagem(
+                                    "Erro",
+                                    JSON.stringify(resultado.erros || resultado.erro)
+                                );
+                                confirmar.disabled = false;
+                            }
+                        } catch (erro) {
+                            mostrarMensagem("Erro", "Falha ao confirmar a ação.");
+                            confirmar.disabled = false;
+                        }
+                    });
+                }
             }
         } catch (erro) {
             mostrarMensagem("Erro", "Falha ao conectar ao chat.");
