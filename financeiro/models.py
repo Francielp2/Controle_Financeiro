@@ -568,18 +568,123 @@ class CompromissoFinanceiro(models.Model):
     def atualizar_status(self):
         self.status = self.situacao
 
-    # SALVA O COMPROMISSO APOS ATUALIZAR STATUS
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: coordena alterações com pagamentos.
+    # O bloqueio precede a validação e o recálculo do compromisso.
     def save(self, *args, **kwargs):
-        self.full_clean()
-        self.atualizar_status()
-
         update_fields = kwargs.get("update_fields")
+
         if update_fields is not None:
-            kwargs["update_fields"] = set(update_fields) | {"status"}
+            update_fields = set(update_fields)
 
-        super().save(*args, **kwargs)
+            # Uma lista vazia significa que nada deve ser salvo.
+            if not update_fields:
+                return
 
+        with transaction.atomic():
+            if not self._state.adding:
+                atual = (
+                    CompromissoFinanceiro.objects
+                    .select_for_update()
+                    .filter(pk=self.pk)
+                    .first()
+                )
+
+                if atual is None:
+                    raise ValidationError(
+                        "Este compromisso foi excluído. Atualize a página."
+                    )
+
+                if update_fields is not None:
+                    # PROTEÇÃO CONTRA CONCORRÊNCIA: preserva os valores atuais
+                    # dos campos não incluídos em um salvamento parcial.
+                    for campo in self._meta.concrete_fields:
+                        if campo.primary_key:
+                            continue
+
+                        if (
+                            campo.name not in update_fields
+                            and campo.attname not in update_fields
+                        ):
+                            setattr(
+                                self,
+                                campo.attname,
+                                getattr(atual, campo.attname),
+                            )
+
+            self.full_clean()
+            self.atualizar_status()
+
+            if update_fields is not None:
+                kwargs["update_fields"] = update_fields | {
+                    "valor_pago_recebido",
+                    "status",
+                }
+
+            return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        # PROTEÇÃO CONTRA CONCORRÊNCIA:
+        # mantém a exclusão e a remoção dos vínculos na mesma transação.
+        # No SQLite, BEGIN IMMEDIATE reserva a escrita desde este ponto.
+        with transaction.atomic():
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # bloqueia primeiro as movimentações, seguindo a ordem
+            # utilizada pela edição e pela exclusão de movimentações.
+            movimentacoes = list(
+                Movimentacao.objects
+                .filter(compromisso_financeiro_id=self.pk)
+                .order_by("pk")
+                .select_for_update()
+            )
+
+            ids_bloqueados = {
+                movimentacao.pk
+                for movimentacao in movimentacoes
+            }
+
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # no PostgreSQL, impede que os fluxos de pagamento protegidos
+            # alterem este compromisso durante a exclusão.
+            atual = (
+                CompromissoFinanceiro.objects
+                .select_for_update()
+                .filter(pk=self.pk)
+                .first()
+            )
+
+            if atual is None:
+                raise ValidationError(
+                    "Este compromisso já foi excluído. Atualize a página."
+                )
+
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # uma movimentação pode ter sido vinculada enquanto aguardávamos
+            # o bloqueio do compromisso. Nesse caso, interrompe a exclusão
+            # para não prosseguir com um conjunto incompleto de bloqueios.
+            novos_vinculos = (
+                Movimentacao.objects
+                .filter(compromisso_financeiro_id=atual.pk)
+                .exclude(pk__in=ids_bloqueados)
+                .exists()
+            )
+
+            if novos_vinculos:
+                raise ValidationError(
+                    "As movimentações deste compromisso foram alteradas "
+                    "durante a operação. Atualize a página e tente novamente."
+                )
+
+            # Executa a exclusão do Django, preservando as movimentações
+            # conforme o on_delete=SET_NULL já definido no relacionamento.
+            resultado = super(CompromissoFinanceiro, atual).delete(
+                *args,
+                **kwargs,
+            )
+
+            self.pk = None
+            return resultado
     # REPRESENTACAO EM TEXTO DO COMPROMISSO
+
     def __str__(self):
         return self.titulo
 
@@ -979,42 +1084,152 @@ class Movimentacao(models.Model):
         self.validar_registros_ativos()
         self.validar_limite_compromisso()
 
-    # SALVA A MOVIMENTACAO APOS VALIDACAO
-    def save(self, *args, **kwargs):
-        compromisso_anterior_id = None
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: valida a criação após reservar a escrita
+    # no SQLite ou bloquear o compromisso no PostgreSQL.
 
-        if self.pk:
-            compromisso_anterior_id = (
-                Movimentacao.objects.filter(pk=self.pk)
-                .values_list("compromisso_financeiro_id", flat=True)
+    def _salvar_nova_movimentacao(self, *args, **kwargs):
+        with transaction.atomic():
+            compromisso = None
+
+            if self.compromisso_financeiro_id:
+                # PostgreSQL: bloqueia o compromisso ate terminar a transacao.
+                # SQLite: a reserva de escrita vem do BEGIN IMMEDIATE.
+                compromisso = (
+                    CompromissoFinanceiro.objects
+                    .select_for_update()
+                    .filter(pk=self.compromisso_financeiro_id)
+                    .first()
+                )
+
+                if compromisso is None:
+                    raise ValidationError(
+                        {
+                            "compromisso_financeiro": (
+                                "O compromisso selecionado não existe mais."
+                            )
+                        }
+                    )
+
+                # PROTEÇÃO CONTRA CONCORRÊNCIA: descarta a cópia antiga do formulário.
+                self.compromisso_financeiro = compromisso
+
+            # PROTEÇÃO CONTRA CONCORRÊNCIA: revalida o limite após o bloqueio.
+            self.full_clean()
+            resultado = super().save(*args, **kwargs)
+
+            if compromisso is not None:
+                compromisso.recalcular_valor_pago()
+
+            return resultado
+
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: coordena edição e troca de compromisso.
+    def _salvar_movimentacao_existente(self, *args, **kwargs):
+        with transaction.atomic():
+            # Busca o registro atual dentro da transacao.
+            # No PostgreSQL, impede outra edicao simultanea desta movimentacao.
+            anterior = (
+                Movimentacao.objects
+                .select_for_update()
+                .filter(pk=self.pk)
                 .first()
             )
 
-        with transaction.atomic():
-            self.full_clean()
-            super().save(*args, **kwargs)
+            if anterior is None:
+                raise ValidationError(
+                    "Esta movimentação foi excluída. Atualize a página."
+                )
 
-            compromisso_para_recalcular = {
-                compromisso_anterior_id,
+            compromisso_ids = {
+                anterior.compromisso_financeiro_id,
                 self.compromisso_financeiro_id,
             }
+            compromisso_ids.discard(None)
 
-            for compromisso_id in compromisso_para_recalcular:
-                if compromisso_id:
-                    CompromissoFinanceiro.objects.get(
-                        pk=compromisso_id
-                    ).recalcular_valor_pago()
+            # PROTEÇÃO CONTRA CONCORRÊNCIA: bloqueia por ID para reduzir
+            # impasses entre operações que atingem os mesmos compromissos.
+            compromissos = {
+                compromisso.pk: compromisso
+                for compromisso in (
+                    CompromissoFinanceiro.objects
+                    .select_for_update()
+                    .filter(pk__in=compromisso_ids)
+                    .order_by("pk")
+                )
+            }
 
+            if self.compromisso_financeiro_id:
+                compromisso = compromissos.get(
+                    self.compromisso_financeiro_id
+                )
+
+                if compromisso is None:
+                    raise ValidationError(
+                        {
+                            "compromisso_financeiro": (
+                                "O compromisso selecionado não existe mais."
+                            )
+                        }
+                    )
+
+                # Usa a versao atualizada nas validacoes.
+                self.compromisso_financeiro = compromisso
+
+            self.full_clean()
+            resultado = super().save(*args, **kwargs)
+
+            # Ao trocar o vinculo, atualiza tanto o compromisso antigo
+            # quanto o novo, dentro da mesma transacao.
+            for compromisso in compromissos.values():
+                compromisso.recalcular_valor_pago()
+
+            return resultado
+
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: encaminha para os fluxos protegidos.
+    def save(self, *args, **kwargs):
+        if self._state.adding:
+            return self._salvar_nova_movimentacao(*args, **kwargs)
+
+        return self._salvar_movimentacao_existente(*args, **kwargs)
+
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: exclui usando o vínculo atual do banco.
     def delete(self, *args, **kwargs):
-        compromisso_id = self.compromisso_financeiro_id
-
         with transaction.atomic():
-            resultado = super().delete(*args, **kwargs)
+            # PROTEÇÃO CONTRA CONCORRÊNCIA: segue a ordem da edição,
+            # bloqueando primeiro a movimentação e depois o compromisso.
+            atual = (
+                Movimentacao.objects
+                .select_for_update()
+                .filter(pk=self.pk)
+                .first()
+            )
 
-            if compromisso_id:
-                CompromissoFinanceiro.objects.get(
-                    pk=compromisso_id,
-                ).recalcular_valor_pago()
+            if atual is None:
+                raise ValidationError(
+                    "Esta movimentação já foi excluída. Atualize a página."
+                )
+
+            compromisso = None
+
+            if atual.compromisso_financeiro_id:
+                compromisso = (
+                    CompromissoFinanceiro.objects
+                    .select_for_update()
+                    .filter(pk=atual.compromisso_financeiro_id)
+                    .first()
+                )
+
+            # Usa o registro atualizado para realizar a exclusao.
+            # Chama o delete do Django, sem repetir este metodo.
+            resultado = super(Movimentacao, atual).delete(
+                *args,
+                **kwargs,
+            )
+
+            if compromisso is not None:
+                compromisso.recalcular_valor_pago()
+
+            # Mantem o objeto original consistente com sua exclusao.
+            self.pk = None
 
             return resultado
 

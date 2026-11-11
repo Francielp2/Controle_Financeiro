@@ -1,16 +1,86 @@
-from django.contrib import admin
-
+from django.contrib import admin, messages
 from .models import (
     Conta,
     Categoria,
     CompromissoFinanceiro,
     Movimentacao,
 )
-from django.db import transaction
+from django.db import transaction, OperationalError
+from django.shortcuts import redirect
 from .forms import VinculosAtivosAdminForm
+from django.core.exceptions import ValidationError
+from .concorrencia import (
+    MENSAGEM_CONCORRENCIA,
+    eh_erro_de_concorrencia,
+)
 
+
+class ConcorrenciaAdminMixin:
+    """Apresenta falhas de concorrência após desfazer a operação."""
+
+    def _executar_com_tratamento(self, request, executar):
+        if request.method != "POST":
+            return executar()
+
+        try:
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # envolve a operação inteira do admin, incluindo ações em lote.
+            # O erro é tratado fora do atomic, depois do rollback.
+            with transaction.atomic():
+                return executar()
+
+        except ValidationError as erro:
+            self.message_user(
+                request,
+                " ".join(erro.messages),
+                level=messages.ERROR,
+            )
+
+        except OperationalError as erro:
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # não esconde problemas de banco que não sejam disputas conhecidas.
+            if not eh_erro_de_concorrencia(erro):
+                raise
+
+            self.message_user(
+                request,
+                MENSAGEM_CONCORRENCIA,
+                level=messages.ERROR,
+            )
+
+        # Redireciona para GET, evitando reenviar automaticamente o POST.
+        return redirect(request.path)
+
+    def changeform_view(self, request, *args, **kwargs):
+        # Abrange criação e edição no admin.
+        executar = super().changeform_view
+
+        return self._executar_com_tratamento(
+            request,
+            lambda: executar(request, *args, **kwargs),
+        )
+
+    def delete_view(self, request, *args, **kwargs):
+        # Abrange a confirmação de exclusão individual.
+        executar = super().delete_view
+
+        return self._executar_com_tratamento(
+            request,
+            lambda: executar(request, *args, **kwargs),
+        )
+
+    def changelist_view(self, request, *args, **kwargs):
+        # Abrange ações da listagem, incluindo exclusão em lote.
+        executar = super().changelist_view
+
+        return self._executar_com_tratamento(
+            request,
+            lambda: executar(request, *args, **kwargs),
+        )
 
 # ADMINISTRACAO DE CONTAS
+
+
 @admin.register(Conta)
 class ContaAdmin(admin.ModelAdmin):
     list_display = (
@@ -96,7 +166,7 @@ class CategoriaAdmin(admin.ModelAdmin):
 
 
 @admin.register(CompromissoFinanceiro)
-class CompromissoFinanceiroAdmin(admin.ModelAdmin):
+class CompromissoFinanceiroAdmin(ConcorrenciaAdminMixin, admin.ModelAdmin):
     list_display = (
         "titulo",
         "usuario",
@@ -161,9 +231,58 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
 
         return campos
 
+        # PROTEÇÃO CONTRA CONCORRÊNCIA:
+    # prepara os bloqueios de todo o lote antes de excluir compromissos.
+    def delete_queryset(self, request, queryset):
+        with transaction.atomic():
+            compromisso_ids = list(
+                queryset.values_list("pk", flat=True)
+            )
+
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # segue a ordem usada nos outros fluxos:
+            # movimentações por ID, depois compromissos por ID.
+            movimentacoes = list(
+                Movimentacao.objects
+                .filter(compromisso_financeiro_id__in=compromisso_ids)
+                .order_by("pk")
+                .select_for_update()
+            )
+
+            movimentacao_ids = {
+                movimentacao.pk
+                for movimentacao in movimentacoes
+            }
+
+            compromissos = list(
+                CompromissoFinanceiro.objects
+                .filter(pk__in=compromisso_ids)
+                .order_by("pk")
+                .select_for_update()
+            )
+
+            # PROTEÇÃO CONTRA CONCORRÊNCIA:
+            # interrompe se surgiram vínculos enquanto os bloqueios
+            # estavam sendo adquiridos, evitando excluir sem protegê-los.
+            novos_vinculos = (
+                Movimentacao.objects
+                .filter(compromisso_financeiro_id__in=compromisso_ids)
+                .exclude(pk__in=movimentacao_ids)
+                .exists()
+            )
+
+            if novos_vinculos:
+                raise ValidationError(
+                    "As movimentações dos compromissos foram alteradas "
+                    "durante a operação. Atualize a página e tente novamente."
+                )
+
+            for compromisso in compromissos:
+                compromisso.delete()
+
 
 @admin.register(Movimentacao)
-class MovimentacaoAdmin(admin.ModelAdmin):
+class MovimentacaoAdmin(ConcorrenciaAdminMixin,  admin.ModelAdmin):
     list_display = (
         "id",
         "usuario",
@@ -212,8 +331,34 @@ class MovimentacaoAdmin(admin.ModelAdmin):
 
     form = VinculosAtivosAdminForm
 
-    # Exclui movimentações em lote recalculando os compromissos relacionados
+    # PROTEÇÃO CONTRA CONCORRÊNCIA: bloqueia o lote antes das exclusões.
+    # Primeiro movimentações por ID, depois compromissos por ID.
     def delete_queryset(self, request, queryset):
         with transaction.atomic():
-            for movimentacao in queryset:
+            # Primeiro bloqueia todas as movimentacoes em ordem fixa.
+            # Limpa select_related para nao bloquear contas e categorias.
+            movimentacoes = list(
+                queryset
+                .select_related(None)
+                .order_by("pk")
+                .select_for_update()
+            )
+
+            compromisso_ids = {
+                movimentacao.compromisso_financeiro_id
+                for movimentacao in movimentacoes
+                if movimentacao.compromisso_financeiro_id is not None
+            }
+
+            # Depois bloqueia todos os compromissos envolvidos.
+            # list() executa a consulta e efetiva os bloqueios.
+            list(
+                CompromissoFinanceiro.objects
+                .filter(pk__in=compromisso_ids)
+                .order_by("pk")
+                .select_for_update()
+            )
+
+            # Reutiliza a exclusao individual e seu recalculo.
+            for movimentacao in movimentacoes:
                 movimentacao.delete()

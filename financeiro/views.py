@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from .concorrencia import salvar_formulario_com_tratamento, excluir_com_tratamento
 
 from .forms import (
     CategoriaForm,
@@ -421,8 +422,8 @@ def compromisso_criar(request):
         form = CompromissoFinanceiroForm(
             request.POST, instance=CompromissoFinanceiro(usuario=request.usuario))
 
-        if form.is_valid():
-            compromisso = form.save()
+        if salvar_formulario_com_tratamento(form):
+            compromisso = form.instance
 
             messages.success(
                 request,
@@ -464,8 +465,7 @@ def compromisso_editar(request, pk):
             instance=compromisso,
         )
 
-        if form.is_valid():
-            form.save()
+        if salvar_formulario_com_tratamento(form):
 
             messages.success(
                 request,
@@ -504,12 +504,11 @@ def compromisso_excluir(request, pk):
     )
 
     if request.method == "POST":
-        compromisso.delete()
-
-        messages.success(
-            request,
-            "Compromisso excluído com sucesso.",
-        )
+        if excluir_com_tratamento(request, compromisso):
+            messages.success(
+                request,
+                "Compromisso excluído com sucesso.",
+            )
 
         return redirect("financeiro:compromisso_listar")
 
@@ -596,8 +595,7 @@ def compromisso_registrar_movimentacao(request, pk):
     form.fields["tipo"].disabled = True
     form.fields["compromisso_financeiro"].disabled = True
 
-    if request.method == "POST" and form.is_valid():
-        form.save()
+    if request.method == "POST" and salvar_formulario_com_tratamento(form):
 
         messages.success(
             request,
@@ -679,8 +677,8 @@ def movimentacao_criar(request):
         form = MovimentacaoForm(
             request.POST, instance=Movimentacao(usuario=request.usuario))
 
-        if form.is_valid():
-            movimentacao = form.save()
+        if salvar_formulario_com_tratamento(form):
+            movimentacao = form.instance
 
             messages.success(
                 request,
@@ -721,8 +719,7 @@ def movimentacao_editar(request, pk):
             instance=movimentacao,
         )
 
-        if form.is_valid():
-            form.save()
+        if salvar_formulario_com_tratamento(form):
 
             messages.success(
                 request,
@@ -761,12 +758,11 @@ def movimentacao_excluir(request, pk):
     )
 
     if request.method == "POST":
-        movimentacao.delete()
-
-        messages.success(
-            request,
-            "Movimentação excluída com sucesso.",
-        )
+        if excluir_com_tratamento(request, movimentacao):
+            messages.success(
+                request,
+                "Movimentação excluída com sucesso.",
+            )
 
         return redirect("financeiro:movimentacao_listar")
 

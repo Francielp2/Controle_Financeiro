@@ -69,7 +69,17 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
-    }
+
+        "OPTIONS": {
+            # PROTEÇÃO CONTRA CONCORRÊNCIA NO SQLITE:
+            # reserva a escrita ao iniciar a transação, antes das consultas.
+            "transaction_mode": "IMMEDIATE",
+
+            # Aguarda o bloqueio; não limita a duração da transação.
+            # Falhas ao obter o bloqueio ainda precisam ser tratadas na interface.
+            "timeout": 5,
+        }
+    },
 }
 
 
