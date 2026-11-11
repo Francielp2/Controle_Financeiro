@@ -10,7 +10,7 @@ from usuarios.models import Usuario
 
 
 def dinheiro(valor):
-    return (valor or Decimal("0.00")).quantize(Decimal("0.01"))
+    return Decimal(str(valor or "0")).quantize(Decimal("0.01"))
 
 # MODELO DE CONTA FINANCEIRA
 
