@@ -119,6 +119,9 @@ class MovimentacaoForm(forms.ModelForm):
         )
 
         widgets = {
-            "data": forms.DateInput(attrs={"type": "date"}),
+            "data_vencimento": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"type": "date"},
+            ),
             "hora": forms.TimeInput(attrs={"type": "time"}),
         }
