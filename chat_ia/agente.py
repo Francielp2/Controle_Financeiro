@@ -58,7 +58,7 @@ def responder(usuario, mensagem, historico=None):
         raise ValueError("Histórico inválido.")
 
     mensagem = mensagem.strip()
-    historico = historico[-6:]
+    historico = historico[-7:]
     entrada = [
         *historico,
         {"role": "user", "content": mensagem},
@@ -91,7 +91,7 @@ def responder(usuario, mensagem, historico=None):
                 *historico,
                 {"role": "user", "content": mensagem},
                 {"role": "assistant", "content": texto},
-            ][-6:]
+            ][-7:]
             return {
                 "resposta": texto,
                 "resultados": resultados,

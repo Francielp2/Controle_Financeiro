@@ -1,5 +1,5 @@
 import json
-from datetime import date, time, timedelta
+from datetime import date, time
 from decimal import Decimal
 from uuid import UUID
 
@@ -25,7 +25,7 @@ from financeiro.models import (
     Movimentacao,
 )
 
-from .models import AcaoPendente
+from .models import AcaoPendente, PRAZO_CHAT
 
 
 ACOES = {
@@ -123,7 +123,7 @@ def criar_acao_pendente(usuario, acao, dados):
     return {
         **previa,
         "id_acao": str(pendente.pk),
-        "expira_em": (pendente.criada_em + timedelta(minutes=10)).isoformat(),
+        "expira_em": (pendente.criada_em + PRAZO_CHAT).isoformat(),
     }
 
 
@@ -146,7 +146,7 @@ def confirmar_acao_pendente(usuario, id_acao):
                 raise ValueError("Ação pendente não encontrada.")
             if pendente.confirmada_em is not None:
                 raise ValueError("Esta ação já foi confirmada.")
-            if timezone.now() > pendente.criada_em + timedelta(minutes=10):
+            if timezone.now() > pendente.criada_em + PRAZO_CHAT:
                 raise ValueError(
                     "Esta ação expirou. Faça a solicitação novamente."
                 )

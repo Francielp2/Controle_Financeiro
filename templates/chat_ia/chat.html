@@ -4,10 +4,29 @@
 
 {% block content %}
 <h2>Chat financeiro</h2>
-<p>Página provisória para testar as consultas e prévias da IA.</p>
+<p>Tarefa atual: {{ tarefa.titulo }}</p>
+
+<form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
+    {% csrf_token %}
+    <button type="submit" name="operacao" value="nova">Nova tarefa</button>
+</form>
+{% if outras_tarefas %}
+<form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
+    {% csrf_token %}
+    <label for="tarefa-anterior">Tarefas anteriores</label>
+    <select id="tarefa-anterior" name="tarefa_id">
+        {% for anterior in outras_tarefas %}
+        <option value="{{ anterior.id }}">{{ anterior.titulo }} ({{ anterior.criada_em|date:"d/m H:i" }})</option>
+        {% endfor %}
+    </select>
+    <button type="submit" name="operacao" value="retomar">Retomar</button>
+</form>
+{% endif %}
 
 <div id="mensagens"></div>
 <button id="ocultar-historico" type="button">Ocultar histórico</button>
+<input id="tarefa-id" type="hidden" value="{{ tarefa.id }}">
+{{ mensagens_iniciais|json_script:"mensagens-iniciais" }}
 
 <form id="form-chat">
     {% csrf_token %}
@@ -21,6 +40,7 @@
     const campo = document.getElementById("mensagem");
     const mensagens = document.getElementById("mensagens");
     const botao = document.getElementById("enviar");
+    const tarefaId = document.getElementById("tarefa-id").value;
 
     // Remove as mensagens visíveis; novas respostas continuam aparecendo.
     document.getElementById("ocultar-historico").addEventListener("click", function () {
@@ -34,6 +54,95 @@
         nome.textContent = remetente + ": ";
         paragrafo.append(nome, document.createTextNode(texto));
         mensagens.appendChild(paragrafo);
+    }
+
+    // Reconstitui os detalhes e as confirmações salvos junto à tarefa.
+    function mostrarExibicao(exibicao) {
+        if (!exibicao) return;
+
+        for (const lista of exibicao.listas) {
+            const detalhes = document.createElement("details");
+            const titulo = document.createElement("summary");
+            const itens = document.createElement("ul");
+            titulo.textContent = lista.titulo;
+            for (const linha of lista.linhas) {
+                const item = document.createElement("li");
+                item.textContent = linha;
+                itens.appendChild(item);
+            }
+            detalhes.append(titulo, itens);
+            mensagens.appendChild(detalhes);
+        }
+
+        for (const previa of exibicao.previas) {
+            const bloco = document.createElement("div");
+            const titulo = document.createElement("strong");
+            const campos = document.createElement("ul");
+            titulo.textContent = previa.titulo;
+            for (const linha of previa.linhas) {
+                const item = document.createElement("li");
+                item.textContent = linha;
+                campos.appendChild(item);
+            }
+            bloco.append(titulo, campos);
+            mensagens.appendChild(bloco);
+
+            if (previa.situacao === "confirmada" || previa.situacao === "expirada") {
+                const estado = document.createElement("span");
+                estado.textContent = previa.situacao === "confirmada"
+                    ? "Confirmado" : "Prazo de confirmação encerrado";
+                bloco.appendChild(estado);
+                continue;
+            }
+
+            const confirmar = document.createElement("button");
+            confirmar.type = "button";
+            confirmar.textContent = "Confirmar e gravar";
+            bloco.appendChild(confirmar);
+
+            confirmar.addEventListener("click", async function () {
+                confirmar.disabled = true;
+
+                try {
+                    const resposta = await fetch("{% url 'chat_ia:confirmar' %}", {
+                        method: "POST",
+                        credentials: "same-origin",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": formulario.querySelector(
+                                "[name=csrfmiddlewaretoken]"
+                            ).value
+                        },
+                        body: JSON.stringify({id_acao: previa.id_acao, tarefa_id: tarefaId})
+                    });
+
+                    const resultado = await resposta.json();
+                    mostrarMensagem(
+                        resultado.confirmada ? "Sistema" : "Erro",
+                        resultado.mensagem || resultado.erro || "Não foi possível confirmar."
+                    );
+                    if (resultado.confirmada) {
+                        confirmar.textContent = "Confirmado";
+                    } else if (resposta.status !== 409) {
+                        confirmar.disabled = false;
+                    }
+                } catch (erro) {
+                    mostrarMensagem("Erro", "Falha ao confirmar a ação.");
+                    confirmar.disabled = false;
+                }
+            });
+        }
+    }
+
+    // A página carrega a conversa da tarefa, inclusive após navegar para outra página.
+    const anteriores = JSON.parse(
+        document.getElementById("mensagens-iniciais").textContent
+    );
+    for (const item of anteriores) {
+        const remetente = item.papel === "usuario" ? "Você"
+            : item.papel === "sistema" ? "Sistema" : "IA";
+        mostrarMensagem(remetente, item.texto);
+        mostrarExibicao(item.exibicao);
     }
 
     formulario.addEventListener("submit", async function (evento) {
@@ -56,7 +165,7 @@
                         "[name=csrfmiddlewaretoken]"
                     ).value
                 },
-                body: JSON.stringify({mensagem: mensagem})
+                body: JSON.stringify({mensagem: mensagem, tarefa_id: tarefaId})
             });
 
             const dados = await resposta.json();
@@ -67,63 +176,7 @@
             }
 
             mostrarMensagem("IA", dados.resposta);
-
-            // Exibe os resultados completos para conferirmos as consultas.
-            if (dados.resultados && dados.resultados.length) {
-                const detalhes = document.createElement("pre");
-                detalhes.style.whiteSpace = "pre-wrap";
-                detalhes.style.overflowWrap = "anywhere";
-                detalhes.textContent = JSON.stringify(dados.resultados, null, 2);
-                mensagens.appendChild(detalhes);
-
-                for (const item of dados.resultados) {
-                    if (item.ferramenta !== "propor_acao" ||
-                        !item.dados || !item.dados.id_acao) {
-                        continue;
-                    }
-
-                    const confirmar = document.createElement("button");
-                    confirmar.type = "button";
-                    confirmar.textContent = "Confirmar e gravar";
-                    mensagens.appendChild(confirmar);
-
-                    confirmar.addEventListener("click", async function () {
-                        confirmar.disabled = true;
-
-                        try {
-                            const resposta = await fetch("{% url 'chat_ia:confirmar' %}", {
-                                method: "POST",
-                                credentials: "same-origin",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "X-CSRFToken": formulario.querySelector(
-                                        "[name=csrfmiddlewaretoken]"
-                                    ).value
-                                },
-                                body: JSON.stringify({id_acao: item.dados.id_acao})
-                            });
-
-                            const resultado = await resposta.json();
-
-                            if (resultado.confirmada) {
-                                mostrarMensagem(
-                                    "Sistema",
-                                    "Registro " + resultado.registro_id + " criado."
-                                );
-                            } else {
-                                mostrarMensagem(
-                                    "Erro",
-                                    JSON.stringify(resultado.erros || resultado.erro)
-                                );
-                                confirmar.disabled = false;
-                            }
-                        } catch (erro) {
-                            mostrarMensagem("Erro", "Falha ao confirmar a ação.");
-                            confirmar.disabled = false;
-                        }
-                    });
-                }
-            }
+            mostrarExibicao(dados.exibicao);
         } catch (erro) {
             mostrarMensagem("Erro", "Falha ao conectar ao chat.");
         } finally {
