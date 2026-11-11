@@ -11,7 +11,7 @@
     </a>
     </p>
 
-    <table>
+    <table class="table table-vcenter table-bordered mt-3">
         <thead>
             <tr>
                 <th>ID</th>
@@ -33,11 +33,11 @@
                     <td>{{ usuario.cpf }}</td>
                     <td>{{ usuario.telefone }}</td>
                     <td>{{ usuario.is_staff|yesno:"Sim,Não" }}</td>
-                    <td class="acoes">
-                        <a href="{% url 'usuarios:usuario_detalhar' usuario.pk %}">
+                    <td>
+                        <a class="me-2" href="{% url 'usuarios:usuario_detalhar' usuario.pk %}">
                             Detalhes
                         </a>
-                        <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
+                        <a class="me-2" href="{% url 'usuarios:usuario_editar' usuario.pk %}">
                             Editar
                         </a>
                         <a href="{% url 'usuarios:usuario_excluir' usuario.pk %}">

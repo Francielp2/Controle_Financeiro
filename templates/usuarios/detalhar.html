@@ -13,7 +13,7 @@
     <p><strong>Telefone:</strong> {{ usuario.telefone }}</p>
     <p><strong>Staff:</strong> {{ usuario.is_staff|yesno:"Sim,Não" }}</p>
 
-    <p class="acoes">
+    <p class="d-flex flex-wrap gap-2">
         <a href="{% url 'usuarios:usuario_editar' usuario.pk %}">
             Editar
         </a>
