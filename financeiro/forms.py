@@ -73,7 +73,10 @@ class CompromissoFinanceiroForm(forms.ModelForm):
         )
 
         widgets = {
-            "data_vencimento": forms.DateInput(attrs={"type": "date"}),
+            "data_vencimento": forms.DateInput(
+                format="%Y-%m-%d",
+                attrs={"type": "date"},
+            ),
         }
 
 
