@@ -302,6 +302,8 @@ class ViewsTests(DadosMixin, TestCase):
             r = self.client.post(reverse("financeiro:movimentacao_criar"), self.post_movimento())
         self.assertEqual(r.status_code, 200)
         self.assertIn("Conflito sintético", str(r.context["form"].non_field_errors()))
+        self.assertContains(r, 'class="alert alert-danger"')
+        self.assertContains(r, "Conflito sintético", count=1)
         self.assertFalse(Movimentacao.objects.exists())
 
     def test_pagamento_preenchimento_parcial_quitado(self):
@@ -310,6 +312,9 @@ class ViewsTests(DadosMixin, TestCase):
         url = reverse("financeiro:compromisso_registrar_movimentacao", args=[c.pk])
         r = self.client.get(url)
         self.assertEqual(r.context["form"].instance.valor, 90)
+        self.assertContains(r, 'class="form-select"')
+        self.assertContains(r, 'data-categorias-compromissos=')
+        self.assertContains(r, '/static/financeiro/js/categoria_compromisso.js')
         self.assertFalse(Movimentacao.objects.exists())
         r = self.client.post(url, self.post_movimento(tipo="ENTRADA", compromisso_financeiro="99999"))
         self.assertEqual(r.status_code, 302)

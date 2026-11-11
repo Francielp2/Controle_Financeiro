@@ -3,21 +3,34 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
-
-    <p>
-        Deseja realmente excluir:
-        <strong>{{ objeto }}</strong>?
-    </p>
-
-    {% if aviso %}
-        <p><strong>Atenção:</strong> {{ aviso }}</p>
-    {% endif %}
-
-    <form method="post">
-        {% csrf_token %}
-
-        <button type="submit">Confirmar exclusão</button>
-        <a href="{{ cancelar_url }}">Cancelar</a>
-    </form>
+    {% comment %}Base: confirmação de exclusão do Tabler, em uma página com card.{% endcomment %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+            <form class="card" method="post">
+                {% csrf_token %}
+                <div class="card-status-top bg-danger"></div>
+                <div class="card-body text-center py-4">
+                    <h1 class="h2">{{ titulo }}</h1>
+                    <p class="text-secondary{% if not aviso %} mb-0{% endif %}">
+                        Deseja realmente excluir <strong>{{ objeto }}</strong>?
+                    </p>
+                    {% if aviso %}
+                        <div class="alert alert-warning text-start mb-0" role="alert">
+                            <strong>Atenção:</strong> {{ aviso }}
+                        </div>
+                    {% endif %}
+                </div>
+                <footer class="card-footer">
+                    <div class="row g-2">
+                        <div class="col-sm">
+                            <a class="btn btn-cancelar w-100" href="{{ cancelar_url }}">Cancelar</a>
+                        </div>
+                        <div class="col-sm">
+                            <button class="btn btn-danger w-100" type="submit">Confirmar exclusão</button>
+                        </div>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </div>
 {% endblock %}

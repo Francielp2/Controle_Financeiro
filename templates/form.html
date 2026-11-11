@@ -3,19 +3,29 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block content %}
-    <h2>{{ titulo }}</h2>
+    {% comment %}Base: card de Form elements da demo oficial do Tabler.{% endcomment %}
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-8">
+            <form class="card" method="post">
+                {% csrf_token %}
+                <header class="card-header">
+                    <h1 class="card-title">{{ titulo }}</h1>
+                </header>
+                <div class="card-body">
+                    {% include "partials/campos_formulario.html" with form=form em_colunas=True only %}
+                </div>
+                <footer class="card-footer">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-cancelar" href="{{ cancelar_url }}">Cancelar</a>
+                        <button class="btn btn-primary ms-auto" type="submit">Salvar</button>
+                    </div>
+                </footer>
+            </form>
+        </div>
+    </div>
+{% endblock %}
 
-    <form method="post">
-        {% csrf_token %}
-
-        {{ form.as_p }}
-
-        <button type="submit">Salvar</button>
-        <a href="{{ cancelar_url }}">Cancelar</a>
-    </form>
-
+{% block scripts %}
     {% include "partials/mascaras_formulario.html" %}
-
     {{ form.media }}
-    
 {% endblock %}

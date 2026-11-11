@@ -12,3 +12,8 @@ html:not([data-bs-theme="dark"]) {
 .nexo-logo {
     width: 7.5rem;
 }
+
+.btn-cancelar {
+    --tblr-btn-bg: color-mix(in oklab, var(--tblr-bg-surface) 94%, var(--tblr-black));
+    --tblr-btn-hover-bg: color-mix(in oklab, var(--tblr-bg-surface) 90%, var(--tblr-black));
+}

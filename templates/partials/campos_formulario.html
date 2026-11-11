@@ -1,0 +1,40 @@
+{% load tabler_forms %}
+
+{% if form.non_field_errors %}
+    <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+{% endif %}
+
+{% for campo in form.hidden_fields %}
+    {{ campo }}
+    {% if campo.errors %}
+        <div class="alert alert-danger" role="alert">{{ campo.errors }}</div>
+    {% endif %}
+{% endfor %}
+
+<div class="row g-3">
+    {% for campo in form.visible_fields %}
+        <div class="col-12{% if em_colunas and campo.widget_type != 'checkbox' and campo.widget_type != 'textarea' %} col-md-6{% endif %}">
+            {% if campo.widget_type == 'checkbox' %}
+                <div class="form-check mb-0">
+                    {{ campo|campo_tabler }}
+                    <label class="form-check-label" for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                </div>
+            {% else %}
+                <label class="form-label{% if campo.field.required and not campo.field.disabled %} required{% endif %}"
+                       for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+                {{ campo|campo_tabler }}
+            {% endif %}
+
+            {% if campo.help_text %}
+                <div class="form-hint" id="{{ campo.auto_id }}_helptext">{{ campo.help_text|safe }}</div>
+            {% endif %}
+            {% if campo.errors %}
+                <div class="invalid-feedback d-block" id="{{ campo.auto_id }}_error">
+                    {% for erro in campo.errors %}
+                        <div>{{ erro }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>

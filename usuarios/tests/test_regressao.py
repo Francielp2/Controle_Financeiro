@@ -132,6 +132,9 @@ class UsuariosViewsTests(DadosMixin, TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn("cpf", r.context["form"].errors)
         self.assertEqual(r.context["form"].data["email"], "pessoa3@example.invalid")
+        self.assertContains(r, 'data-mask="cpf"')
+        self.assertContains(r, 'class="form-control is-invalid"')
+        self.assertContains(r, 'id="id_cpf_error"')
         self.assertEqual(Usuario.objects.count(), 2)
         self.assertEqual(r.context["cancelar_url"], reverse("usuarios:login"))
 
