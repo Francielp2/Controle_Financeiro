@@ -3,6 +3,7 @@ from django.db.models import Q
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 
 from .forms import (
@@ -365,7 +366,7 @@ def categoria_excluir(request, pk):
     )
 
 # -------------------------
-# CRUD DE COMPROMISSOS
+# VIEW DE COMPROMISSOS
 # -------------------------
 
 
@@ -518,6 +519,104 @@ def compromisso_excluir(request, pk):
         {
             "titulo": "Excluir compromisso",
             "objeto": compromisso,
+            "cancelar_url": reverse(
+                "financeiro:compromisso_detalhar",
+                args=[compromisso.pk],
+            ),
+        },
+    )
+
+
+# REGISTRA PAGAMENTO OU RECEBIMENTO DO COMPROMISSO
+@login_required
+@perfil_obrigatorio
+def compromisso_registrar_movimentacao(request, pk):
+    compromisso = get_object_or_404(
+        CompromissoFinanceiro.objects.select_related(
+            "conta",
+            "categoria",
+        ),
+        pk=pk,
+        usuario=request.usuario,
+    )
+
+    if compromisso.esta_quitado():
+        messages.info(request, "Este compromisso já está quitado.")
+        return redirect(
+            "financeiro:compromisso_detalhar",
+            pk=compromisso.pk,
+        )
+
+    if (
+        compromisso.conta_id and not compromisso.conta.ativa
+    ) or (
+        compromisso.categoria_id and not compromisso.categoria.ativa
+    ):
+        messages.error(
+            request,
+            "Este compromisso possui conta ou categoria inativa. "
+            "Regularize o vínculo antes de registrar a movimentação.",
+        )
+        return redirect(
+            "financeiro:compromisso_detalhar",
+            pk=compromisso.pk,
+        )
+
+    eh_pagamento = compromisso.tipo == CompromissoFinanceiro.Tipo.PAGAR
+    titulo = (
+        "Registrar pagamento"
+        if eh_pagamento
+        else "Registrar recebimento"
+    )
+
+    agora = timezone.localtime()
+
+    movimentacao = Movimentacao(
+        usuario=request.usuario,
+        compromisso_financeiro=compromisso,
+        tipo=(
+            Movimentacao.Tipo.SAIDA
+            if eh_pagamento
+            else Movimentacao.Tipo.ENTRADA
+        ),
+        valor=compromisso.valor_restante(),
+        categoria=compromisso.categoria,
+        conta_origem=compromisso.conta if eh_pagamento else None,
+        conta_destino=compromisso.conta if not eh_pagamento else None,
+        descricao=f"{titulo}: {compromisso.titulo}",
+        data=agora.date(),
+        hora=agora.time().replace(second=0, microsecond=0),
+    )
+
+    form = MovimentacaoForm(
+        request.POST if request.method == "POST" else None,
+        instance=movimentacao,
+    )
+
+    form.fields["tipo"].disabled = True
+    form.fields["compromisso_financeiro"].disabled = True
+
+    if request.method == "POST" and form.is_valid():
+        form.save()
+
+        messages.success(
+            request,
+            "Pagamento registrado com sucesso."
+            if eh_pagamento
+            else "Recebimento registrado com sucesso.",
+        )
+
+        return redirect(
+            "financeiro:compromisso_detalhar",
+            pk=compromisso.pk,
+        )
+
+    return render(
+        request,
+        "form.html",
+        {
+            "titulo": f"{titulo}: {compromisso.titulo}",
+            "form": form,
             "cancelar_url": reverse(
                 "financeiro:compromisso_detalhar",
                 args=[compromisso.pk],

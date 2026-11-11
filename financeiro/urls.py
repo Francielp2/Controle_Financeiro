@@ -30,6 +30,7 @@ urlpatterns = [
     path("compromissos/<int:pk>/", views.compromisso_detalhar, name="compromisso_detalhar"),
     path("compromissos/<int:pk>/editar/", views.compromisso_editar, name="compromisso_editar"),
     path("compromissos/<int:pk>/excluir/", views.compromisso_excluir, name="compromisso_excluir"),
+    path("compromissos/<int:pk>/registrar-movimentacao/", views.compromisso_registrar_movimentacao, name="compromisso_registrar_movimentacao", ),
 
     # ROTAS DE MOVIMENTACOES
     path("movimentacoes/", views.movimentacao_listar, name="movimentacao_listar"),

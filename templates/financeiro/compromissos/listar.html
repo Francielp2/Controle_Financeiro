@@ -43,6 +43,15 @@
                         <a href="{% url 'financeiro:compromisso_excluir' compromisso.pk %}">
                             Excluir
                         </a>
+                        {% if not compromisso.esta_quitado %}
+                        <a href="{% url 'financeiro:compromisso_registrar_movimentacao' compromisso.pk %}">
+                            {% if compromisso.tipo == "PAGAR" %}
+                                Registrar pagamento
+                            {% else %}
+                                Registrar recebimento
+                            {% endif %}
+                        </a>
+                        {% endif %}
                     </td>
                 </tr>
             {% empty %}
