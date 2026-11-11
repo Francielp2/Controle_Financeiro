@@ -7,4 +7,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("usuarios/", include("usuarios.urls")),
     path("", include("financeiro.urls")),
+    path("chat/", include("chat_ia.urls")),
 ]

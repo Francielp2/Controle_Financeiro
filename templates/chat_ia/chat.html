@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block title %}Teste do chat{% endblock %}
+
+{% block content %}
+<h2>Chat financeiro</h2>
+<p>Página provisória para testar as consultas e prévias da IA.</p>
+
+<div id="mensagens">
+    {% for item in historico %}
+        <p>
+            <strong>
+                {% if item.role == "user" %}Você{% else %}IA{% endif %}:
+            </strong>
+            {{ item.content }}
+        </p>
+    {% endfor %}
+</div>
+
+<form id="form-chat">
+    {% csrf_token %}
+    <input id="mensagem" type="text" maxlength="1000" required
+           placeholder="Escreva sua pergunta" style="width: 70%;">
+    <button id="enviar" type="submit">Enviar</button>
+</form>
+
+<script>
+    const formulario = document.getElementById("form-chat");
+    const campo = document.getElementById("mensagem");
+    const mensagens = document.getElementById("mensagens");
+    const botao = document.getElementById("enviar");
+
+    // Mostra texto sem interpretá-lo como HTML.
+    function mostrarMensagem(remetente, texto) {
+        const paragrafo = document.createElement("p");
+        const nome = document.createElement("strong");
+        nome.textContent = remetente + ": ";
+        paragrafo.append(nome, document.createTextNode(texto));
+        mensagens.appendChild(paragrafo);
+    }
+
+    formulario.addEventListener("submit", async function (evento) {
+        evento.preventDefault();
+
+        const mensagem = campo.value.trim();
+        if (!mensagem) return;
+
+        mostrarMensagem("Você", mensagem);
+        campo.value = "";
+        botao.disabled = true;
+
+        try {
+            const resposta = await fetch("{% url 'chat_ia:conversar' %}", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": formulario.querySelector(
+                        "[name=csrfmiddlewaretoken]"
+                    ).value
+                },
+                body: JSON.stringify({mensagem: mensagem})
+            });
+
+            const dados = await resposta.json();
+
+            if (!resposta.ok) {
+                mostrarMensagem("Erro", dados.erro || "Não foi possível responder.");
+                return;
+            }
+
+            mostrarMensagem("IA", dados.resposta);
+
+            // Exibe os resultados completos para conferirmos as consultas.
+            if (dados.resultados && dados.resultados.length) {
+                const detalhes = document.createElement("pre");
+                detalhes.style.whiteSpace = "pre-wrap";
+                detalhes.style.overflowWrap = "anywhere";
+                detalhes.textContent = JSON.stringify(dados.resultados, null, 2);
+                mensagens.appendChild(detalhes);
+            }
+        } catch (erro) {
+            mostrarMensagem("Erro", "Falha ao conectar ao chat.");
+        } finally {
+            botao.disabled = false;
+            campo.focus();
+        }
+    });
+</script>
+{% endblock %}
