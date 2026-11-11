@@ -610,6 +610,7 @@ class Movimentacao(models.Model):
     #             {"valor": "Saldo insuficiente na conta de origem."})
 
     # VALIDA COMPROMISSO FINANCEIRO VINCULADO
+
     def validar_compromisso_financeiro(self):
         if not self.compromisso_financeiro_id:
             return
@@ -742,7 +743,36 @@ class Movimentacao(models.Model):
                 }
             )
 
+    def validar_limite_compromisso(self):
+        if not self.compromisso_financeiro_id or self.valor is None:
+            return
+
+        compromisso = self.compromisso_financeiro
+
+        outras_movimentacoes = compromisso.movimentacoes.exclude(
+            pk=self.pk,
+        )
+
+        total_movimentacoes = (
+            outras_movimentacoes.aggregate(total=Sum("valor"))["total"]
+            or Decimal("0.00")
+        )
+
+        total_projetado = (
+            compromisso.valor_pago_recebido_inicial + total_movimentacoes + self.valor
+        )
+
+        if total_projetado > compromisso.valor_total:
+            raise ValidationError(
+                {
+                    "valor": (
+                        "O valor total mais as movimentações não pode superar o total do compromisso"
+                    )
+                }
+            )
+
     # VALIDA REGRAS DA MOVIMENTACAO
+
     def clean(self):
         super().clean()
 
@@ -834,6 +864,7 @@ class Movimentacao(models.Model):
 
         self.validar_compromisso_financeiro()
         self.validar_registros_ativos_na_criacao()
+        self.validar_limite_compromisso()
 
     # SALVA A MOVIMENTACAO APOS VALIDACAO
     def save(self, *args, **kwargs):
