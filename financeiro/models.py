@@ -770,8 +770,7 @@ class Movimentacao(models.Model):
             )
 
         if (
-            self.categoria_id
-            and compromisso.categoria_id
+            compromisso.categoria_id
             and self.categoria_id != compromisso.categoria_id
         ):
             raise ValidationError(

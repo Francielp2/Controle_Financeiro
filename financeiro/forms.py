@@ -7,6 +7,7 @@ from .models import (
     CompromissoFinanceiro,
     Movimentacao,
 )
+import json
 
 
 def filtrar_vinculos_ativos(form):
@@ -34,6 +35,31 @@ def filtrar_vinculos_ativos(form):
         )
 
         # FORMULARIO DE CONTAS
+
+# DISPONIBILIZA A CATEGORIA DOS COMPROMISSOS PERMITIDOS NO FORMULÁRIO
+
+
+def configurar_categoria_do_compromisso(form):
+    if (
+        "compromisso_financeiro" not in form.fields
+        or "categoria" not in form.fields
+    ):
+        return
+
+    campo = form.fields["compromisso_financeiro"]
+
+    categorias = {
+        str(pk): str(categoria_id) if categoria_id is not None else ""
+        for pk, categoria_id in campo.queryset.values_list(
+            "pk",
+            "categoria_id",
+        )
+    }
+
+    # No admin, o select pode estar dentro de um widget com botoes relacionados.
+    widget = getattr(campo.widget, "widget", campo.widget)
+
+    widget.attrs["data-categorias-compromissos"] = json.dumps(categorias)
 
 
 class ContaForm(forms.ModelForm):
@@ -73,6 +99,7 @@ class CategoriaForm(forms.ModelForm):
 
 
 # CONFIGURACAO DO MODELO CATEGORIA
+
 
     class Meta:
         model = Categoria
@@ -115,6 +142,7 @@ class CompromissoFinanceiroForm(forms.ModelForm):
                 )
 
         filtrar_vinculos_ativos(self)
+        configurar_categoria_do_compromisso(self)
 
     class Meta:
         model = CompromissoFinanceiro
@@ -159,6 +187,7 @@ class MovimentacaoForm(forms.ModelForm):
             self.fields["compromisso_financeiro"].queryset = compromissos
 
         filtrar_vinculos_ativos(self)
+        configurar_categoria_do_compromisso(self)
 
     class Meta:
         model = Movimentacao
@@ -182,8 +211,17 @@ class MovimentacaoForm(forms.ModelForm):
             "hora": forms.TimeInput(attrs={"type": "time"}),
         }
 
+    class Media:
+        js = ("financeiro/js/categoria_compromisso.js",)
+
 # FORMULARIO BASE DO ADMIN PARA FILTRAR VINCULOS INATIVOS
+
+
 class VinculosAtivosAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         filtrar_vinculos_ativos(self)
+        configurar_categoria_do_compromisso(self)
+
+    class Media:
+        js = ("financeiro/js/categoria_compromisso.js",)
