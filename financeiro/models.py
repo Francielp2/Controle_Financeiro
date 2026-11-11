@@ -5,6 +5,7 @@ from django.db import models, transaction
 from django.db.models import Q, Sum
 from django.db.models.functions import Lower
 from django.utils import timezone
+from collections import Counter
 
 from usuarios.models import Usuario
 
@@ -689,7 +690,25 @@ class CompromissoFinanceiro(models.Model):
         return self.titulo
 
 
+class MovimentacaoQuerySet(models.QuerySet):
+    def delete(self):
+        with transaction.atomic():
+            movimentacoes = list(
+                self.select_related(None).order_by("pk").select_for_update()
+            )
+
+            total = 0
+            detalhes = Counter()
+
+            for movimetacao in movimentacoes:
+                quantidade, contagem = movimetacao.delete()
+                total += quantidade
+                detalhes.update(contagem)
+            return total, dict(detalhes)
+
 # MODELO DE MOVIMENTACAO FINANCEIRA
+
+
 class Movimentacao(models.Model):
     # TIPOS DE MOVIMENTACAO DISPONIVEIS
     class Tipo(models.TextChoices):
@@ -765,6 +784,8 @@ class Movimentacao(models.Model):
     atualizado_em = models.DateTimeField(
         auto_now=True,
     )
+
+    objects = MovimentacaoQuerySet.as_manager()
 
     class Meta:
         constraints = [
@@ -1139,6 +1160,16 @@ class Movimentacao(models.Model):
                     "Esta movimentação foi excluída. Atualize a página."
                 )
 
+            update_fields = kwargs.get("update_fields")
+            if update_fields is not None:
+                update_fields = set(update_fields)
+                for campo in self._meta.concrete_fields:
+                    if campo.primary_key:
+                        continue
+                    if campo.name not in update_fields and campo.attname not in update_fields:
+                        setattr(self, campo.attname, getattr(
+                            anterior, campo.attname))
+
             compromisso_ids = {
                 anterior.compromisso_financeiro_id,
                 self.compromisso_financeiro_id,
@@ -1186,6 +1217,13 @@ class Movimentacao(models.Model):
 
     # PROTEÇÃO CONTRA CONCORRÊNCIA: encaminha para os fluxos protegidos.
     def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            update_fields = set(update_fields)
+            if not update_fields:
+                return
+            kwargs["update_fields"] = update_fields
+
         if self._state.adding:
             return self._salvar_nova_movimentacao(*args, **kwargs)
 

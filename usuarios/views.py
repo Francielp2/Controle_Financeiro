@@ -11,6 +11,7 @@ from financeiro.models import Categoria, CompromissoFinanceiro, Conta, Movimenta
 from .forms import UsuarioCreationForm, UsuarioUpdateForm, UsuarioStaffCreationForm
 from .models import Usuario
 from .utils import usuario_logado
+from financeiro.concorrencia import salvar_formulario_com_tratamento
 
 
 # LISTA OS USUARIOS CADASTRADOS
@@ -68,8 +69,8 @@ def usuario_criar(request):
     if request.method == "POST":
         form = FormClass(request.POST)
 
-        if form.is_valid():
-            usuario = form.save()
+        if salvar_formulario_com_tratamento(form):
+            usuario = form.instance
 
             messages.success(
                 request,
@@ -95,11 +96,11 @@ def usuario_criar(request):
             "titulo": "Cadastrar usuário" if eh_staff else "Criar conta",
             "form": form,
             "cancelar_url": (
-                    reverse("usuarios:usuario_listar")
-                    if eh_staff
-                    else reverse("usuarios:login")
-                ),
-            },
+                reverse("usuarios:usuario_listar")
+                if eh_staff
+                else reverse("usuarios:login")
+            ),
+        },
     )
 
 

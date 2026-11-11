@@ -95,8 +95,8 @@ def conta_criar(request):
 
         form = ContaForm(request.POST, instance=Conta(usuario=request.usuario))
 
-        if form.is_valid():
-            conta = form.save()
+        if salvar_formulario_com_tratamento(form):
+            conta = form.instance
 
             messages.success(
                 request,
@@ -257,8 +257,8 @@ def categoria_criar(request):
         form = CategoriaForm(
             request.POST, instance=Categoria(usuario=request.usuario))
 
-        if form.is_valid():
-            categoria = form.save()
+        if salvar_formulario_com_tratamento(form):
+            categoria = form.instance
 
             messages.success(
                 request,

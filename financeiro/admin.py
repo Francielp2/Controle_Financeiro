@@ -22,6 +22,8 @@ class ConcorrenciaAdminMixin:
         if request.method != "POST":
             return executar()
 
+        mensagens_anteriores = len(request._messages._queued_messages)
+
         try:
             # PROTEÇÃO CONTRA CONCORRÊNCIA:
             # envolve a operação inteira do admin, incluindo ações em lote.
@@ -30,6 +32,7 @@ class ConcorrenciaAdminMixin:
                 return executar()
 
         except ValidationError as erro:
+            del request._messages._queued_messages[mensagens_anteriores:]
             self.message_user(
                 request,
                 " ".join(erro.messages),
@@ -37,10 +40,13 @@ class ConcorrenciaAdminMixin:
             )
 
         except OperationalError as erro:
+
             # PROTEÇÃO CONTRA CONCORRÊNCIA:
             # não esconde problemas de banco que não sejam disputas conhecidas.
             if not eh_erro_de_concorrencia(erro):
                 raise
+
+            del request._messages._queued_messages[mensagens_anteriores:]
 
             self.message_user(
                 request,
