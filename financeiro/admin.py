@@ -85,6 +85,14 @@ class CategoriaAdmin(admin.ModelAdmin):
 
     list_select_related = ("usuario",)
 
+    def get_readonly_fields(self, request, obj=None):
+        campos = tuple(super().get_readonly_fields(request, obj))
+
+        if obj is not None and obj.possui_vinculos():
+            campos += ("usuario", "tipo")
+
+        return campos
+
 
 @admin.register(CompromissoFinanceiro)
 class CompromissoFinanceiroAdmin(admin.ModelAdmin):

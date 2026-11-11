@@ -34,7 +34,19 @@ class ContaForm(forms.ModelForm):
 
 
 class CategoriaForm(forms.ModelForm):
-    # CONFIGURACAO DO MODELO CATEGORIA
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance.possui_vinculos():
+            self.fields["tipo"].disabled = True
+            self.fields["tipo"].help_text = (
+                "O tipo não pode ser alterado porque existem movimentações ou compromissos vinculados. "
+            )
+
+
+# CONFIGURACAO DO MODELO CATEGORIA
+
     class Meta:
         model = Categoria
         fields = (

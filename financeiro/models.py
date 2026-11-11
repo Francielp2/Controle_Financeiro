@@ -187,9 +187,47 @@ class Categoria(models.Model):
             ),
         ]
 
+    #  VERIFICA SE A CATEGORIA POSSUI REGISTROS VINCULADOS
+
+    def possui_vinculos(self):
+        if not self.pk:
+            return False
+
+        return (
+            self.movimentacoes.exists() or self.compromissos.exists()
+        )
+
+    # BLOQUEIA ALTERAÇÕES QUE COMPROMETEM OS REGISTROS VINCULADOS
+    def validar_alteracoes_com_vinculos(self):
+        if not self.possui_vinculos():
+            return
+
+        categoria_anterior = Categoria.objects.filter(pk=self.pk).first()
+
+        if categoria_anterior is None:
+            return
+
+        erros = []
+
+        if self.usuario_id != categoria_anterior.usuario_id:
+            erros.append(
+                "O proprietário da categoria não pode ser alterado porque existem movimentações ou compromissos vinculados. "
+            )
+
+        if self.tipo != categoria_anterior.tipo:
+            erros.append(
+                "O tipo da categoria não pode ser alterado porque existem movimentações ou compromissos vinculados. "
+            )
+
+        if erros:
+            raise ValidationError(erros)
+
     # VALIDA REGRAS DA CATEGORIA
+
     def clean(self):
         super().clean()
+
+        self.validar_alteracoes_com_vinculos()
 
         if self.usuario_id and self.nome and self.tipo:
             categoria_existente = Categoria.objects.filter(
