@@ -546,28 +546,28 @@ class Movimentacao(models.Model):
             )
 
     # VALIDA SALDO DISPONIVEL
-    def validar_saldo(self):
-        if not self.conta_origem:
-            return
+    # def validar_saldo(self):
+    #     if not self.conta_origem:
+    #         return
 
-        saldo_disponivel = self.conta_origem.saldo_atual
+    #     saldo_disponivel = self.conta_origem.saldo_atual
 
-        # DEVOLVE TEMPORARIAMENTE O VALOR ANTIGO AO SALDO NA EDICAO
-        if self.pk:
-            movimentacao_anterior = Movimentacao.objects.filter(
-                pk=self.pk
-            ).first()
+    #     # DEVOLVE TEMPORARIAMENTE O VALOR ANTIGO AO SALDO NA EDICAO
+    #     if self.pk:
+    #         movimentacao_anterior = Movimentacao.objects.filter(
+    #             pk=self.pk
+    #         ).first()
 
-            if (
-                movimentacao_anterior
-                and movimentacao_anterior.conta_origem_id
-                == self.conta_origem_id
-            ):
-                saldo_disponivel += movimentacao_anterior.valor
+    #         if (
+    #             movimentacao_anterior
+    #             and movimentacao_anterior.conta_origem_id
+    #             == self.conta_origem_id
+    #         ):
+    #             saldo_disponivel += movimentacao_anterior.valor
 
-        if saldo_disponivel < self.valor:
-            raise ValidationError(
-                {"valor": "Saldo insuficiente na conta de origem."})
+    #     if saldo_disponivel < self.valor:
+    #         raise ValidationError(
+    #             {"valor": "Saldo insuficiente na conta de origem."})
 
     # VALIDA COMPROMISSO FINANCEIRO VINCULADO
     def validar_compromisso_financeiro(self):
@@ -786,11 +786,11 @@ class Movimentacao(models.Model):
                     }
                 )
 
-            self.validar_saldo()
+            # self.validar_saldo()
 
         elif self.tipo == self.Tipo.TRANSFERENCIA:
             self.validar_transferencia()
-            self.validar_saldo()
+            # self.validar_saldo()
 
         self.validar_compromisso_financeiro()
         self.validar_registros_ativos_na_criacao()
