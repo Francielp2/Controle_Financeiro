@@ -690,14 +690,27 @@ class Movimentacao(models.Model):
                     )
                 }
             )
-    # VALIDA REGRAS DA MOVIMENTACAO
 
+    def validar_data_nao_futura(self):
+        if self.data and self.data > timezone.localdate():
+            raise ValidationError(
+                {
+                    "data": (
+                        "A data da movimentação não pode ser futura. "
+                        "Use compromissos para lançamentos futuros."
+                    )
+                }
+            )
+
+    # VALIDA REGRAS DA MOVIMENTACAO
     def clean(self):
         super().clean()
 
         if self.valor is not None and self.valor <= 0:
             raise ValidationError(
                 {"valor": "O valor deve ser maior que zero."})
+
+        self.validar_data_nao_futura()
 
         if self.conta_origem_id:
             if self.conta_origem.usuario_id != self.usuario_id:
