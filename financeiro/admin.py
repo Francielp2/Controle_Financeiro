@@ -7,6 +7,7 @@ from .models import (
     Movimentacao,
 )
 from django.db import transaction
+from .forms import VinculosAtivosAdminForm
 
 
 # ADMINISTRACAO DE CONTAS
@@ -136,6 +137,8 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
 
     exclude = ("status",)
 
+    form = VinculosAtivosAdminForm
+
     @admin.display(description="Valor restante")
     def mostrar_valor_restante(self, compromisso):
         return compromisso.valor_restante()
@@ -206,6 +209,8 @@ class MovimentacaoAdmin(admin.ModelAdmin):
         "-data",
         "-hora",
     )
+
+    form = VinculosAtivosAdminForm
 
     # Exclui movimentações em lote recalculando os compromissos relacionados
     def delete_queryset(self, request, queryset):

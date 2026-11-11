@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import Q
 
 from .models import (
     Conta,
@@ -8,7 +9,33 @@ from .models import (
 )
 
 
-# FORMULARIO DE CONTAS
+def filtrar_vinculos_ativos(form):
+    instance = form.instance
+
+    anterior = (
+        type(instance).objects.filter(pk=instance.pk).first()
+        if instance.pk
+        else None
+    )
+
+    for nome in ("conta", "conta_origem", "conta_destino", "categoria"):
+        if nome not in form.fields:
+            continue
+
+        anterior_id = (
+            getattr(anterior, f"{nome}_id", None)
+            if anterior is not None
+            else None
+        )
+
+        campo = form.fields[nome]
+        campo.queryset = campo.queryset.filter(
+            Q(ativa=True) | Q(pk=anterior_id)
+        )
+
+        # FORMULARIO DE CONTAS
+
+
 class ContaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
@@ -70,10 +97,6 @@ class CompromissoFinanceiroForm(forms.ModelForm):
             categorias = Categoria.objects.filter(
                 usuario_id=self.instance.usuario_id)
 
-            if not self.instance.pk:
-                contas = contas.filter(ativa=True)
-                categorias = categorias.filter(ativa=True)
-
             self.fields["conta"].queryset = contas
             self.fields["categoria"].queryset = categorias
 
@@ -90,7 +113,8 @@ class CompromissoFinanceiroForm(forms.ModelForm):
                 self.fields[campo].help_text = (
                     "Este campo não pode ser alterado porque existem movimentações vinculadas ao compromisso"
                 )
-                
+
+        filtrar_vinculos_ativos(self)
 
     class Meta:
         model = CompromissoFinanceiro
@@ -129,14 +153,12 @@ class MovimentacaoForm(forms.ModelForm):
             compromissos = CompromissoFinanceiro.objects.filter(
                 usuario_id=usuario_id)
 
-            if not self.instance.pk:
-                contas = contas.filter(ativa=True)
-                categorias = categorias.filter(ativa=True)
-
             self.fields["conta_origem"].queryset = contas
             self.fields["conta_destino"].queryset = contas
             self.fields["categoria"].queryset = categorias
             self.fields["compromisso_financeiro"].queryset = compromissos
+
+        filtrar_vinculos_ativos(self)
 
     class Meta:
         model = Movimentacao
@@ -159,3 +181,9 @@ class MovimentacaoForm(forms.ModelForm):
             ),
             "hora": forms.TimeInput(attrs={"type": "time"}),
         }
+
+# FORMULARIO BASE DO ADMIN PARA FILTRAR VINCULOS INATIVOS
+class VinculosAtivosAdminForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        filtrar_vinculos_ativos(self)

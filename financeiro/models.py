@@ -389,19 +389,36 @@ class CompromissoFinanceiro(models.Model):
     def situacao_display(self):
         return self.Status(self.situacao).label
 
-    def validar_registros_ativos_na_criacao(self):
-        if self.pk:
-            return
+    # PERMITE MANTER VINCULOS INATIVOS MAS IMPEDE A CRIAÇÃO DE NOVOS VINCULOS COM CONTAS OU CATEGORIAS INATIVAS
 
-        if self.conta_id and not self.conta.ativa:
-            raise ValidationError(
-                {"conta": "Não é possível usar uma conta inativa em novo compromisso."}
+    def validar_registros_ativos(self):
+        anterior = (
+            CompromissoFinanceiro.objects.filter(
+                pk=self.pk).first() if self.pk else None
+        )
+
+        erros = {}
+
+        for campo in ("conta", "categoria"):
+            registro_id = getattr(self, f"{campo}_id")
+
+            if registro_id is None:
+                continue
+
+            anterior_id = (
+                getattr(
+                    anterior, f"{campo}_id") if anterior is not None else None
             )
 
-        if self.categoria_id and not self.categoria.ativa:
-            raise ValidationError(
-                {"categoria": "Não é possível usar uma categoria inativa em novo compromisso."}
-            )
+            if registro_id == anterior_id:
+                continue
+
+            if not getattr(self, campo).ativa:
+                erros[campo] = (
+                    "Não é possível selecionar um registro inativo. Só é possível manter registros inativos já vinculados."
+                )
+        if erros:
+            raise ValidationError(erros)
 
     # BLOQUEIA ALTERAÇÕES QUE COMPROMETEM REGISTROS VINCULADOS
 
@@ -545,7 +562,7 @@ class CompromissoFinanceiro(models.Model):
                 }
             )
 
-        self.validar_registros_ativos_na_criacao()
+        self.validar_registros_ativos()
 
     # ATUALIZA O STATUS DO COMPROMISSO
     def atualizar_status(self):
@@ -794,36 +811,40 @@ class Movimentacao(models.Model):
                 }
             )
 
-    def validar_registros_ativos_na_criacao(self):
-        if self.pk:
-            return
+    # PERMITE MANTER VINCULOS INATIVOS MAS NÃO PERMITE CADASTRAR NOVOS VINCULOS INATIVOS
+    def validar_registros_ativos(self):
+        anterior = (
+            Movimentacao.objects.filter(pk=self.pk).first()
+            if self.pk
+            else None
+        )
 
-        if self.conta_origem_id and not self.conta_origem.ativa:
-            raise ValidationError(
-                {
-                    "conta_origem": (
-                        "Não é possível usar uma conta de origem inativa em nova movimentação."
-                    )
-                }
+        erros = {}
+
+        for campo in ("conta_destino", "conta_origem", "categoria"):
+            registro_id = (
+                getattr(self, f"{campo}_id")
             )
 
-        if self.conta_destino_id and not self.conta_destino.ativa:
-            raise ValidationError(
-                {
-                    "conta_destino": (
-                        "Não é possível usar uma conta de destino inativa em nova movimentação."
-                    )
-                }
+            if registro_id is None:
+                continue
+
+            anterior_id = (
+                getattr(anterior, f"{campo}_id")
+                if anterior is not None
+                else None
             )
 
-        if self.categoria_id and not self.categoria.ativa:
-            raise ValidationError(
-                {
-                    "categoria": (
-                        "Não é possível usar uma categoria inativa em nova movimentação."
-                    )
-                }
-            )
+            if registro_id == anterior_id:
+                continue
+
+            if not getattr(self, campo).ativa:
+                erros[campo] = (
+                    "Não é possível selecionar um registro inativo. Somente um vinculo já existente pode ser mantido inativo"
+                )
+
+        if erros:
+            raise ValidationError(erros)
 
     def validar_data_nao_futura(self):
         if self.data and self.data > timezone.localdate():
@@ -956,7 +977,7 @@ class Movimentacao(models.Model):
             # self.validar_saldo()
 
         self.validar_compromisso_financeiro()
-        self.validar_registros_ativos_na_criacao()
+        self.validar_registros_ativos()
         self.validar_limite_compromisso()
 
     # SALVA A MOVIMENTACAO APOS VALIDACAO
