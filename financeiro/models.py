@@ -488,7 +488,7 @@ class Movimentacao(models.Model):
     )
 
     data = models.DateField(
-        default=timezone.now,
+        default=timezone.localdate,
     )
 
     hora = models.TimeField(
