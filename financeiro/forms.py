@@ -38,19 +38,23 @@ class CategoriaForm(forms.ModelForm):
 
 
 class CompromissoFinanceiroForm(forms.ModelForm):
+    # CONFIGURACAO DO MODELO COMPROMISSO FINANCEIRO
 
-    def _init_(self, *args, **kwargs):
-        super()._init_(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if self.instance.usuario_id:
-            self.fields["conta"].queryset = Conta.objects.filter(
-                usuario_id=self.instance.usuario_id
-            )
-            self.fields["categoria"].queryset = Categoria.objects.filter(
-                usuario_id=self.instance.usuario_id
-            )
+            contas = Conta.objects.filter(usuario_id=self.instance.usuario_id)
+            categorias = Categoria.objects.filter(
+                usuario_id=self.instance.usuario_id)
 
-    # CONFIGURACAO DO MODELO COMPROMISSO FINANCEIRO
+            if not self.instance.pk:
+                contas = contas.filter(ativa=True)
+                categorias = categorias.filter(ativa=True)
+
+            self.fields["conta"].queryset = contas
+            self.fields["categoria"].queryset = categorias
+
     class Meta:
         model = CompromissoFinanceiro
         fields = (
@@ -74,29 +78,24 @@ class CompromissoFinanceiroForm(forms.ModelForm):
 class MovimentacaoForm(forms.ModelForm):
     # CONFIGURACAO DO MODELO MOVIMENTACAO
 
-    def _init_(self, *args, **kwargs):
-        super()._init_(*args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         if self.instance.usuario_id:
             usuario_id = self.instance.usuario_id
 
-            self.fields["conta_origem"].queryset = Conta.objects.filter(
-                usuario_id=usuario_id
-            )
+            contas = Conta.objects.filter(usuario_id=usuario_id)
+            categorias = Categoria.objects.filter(usuario_id=usuario_id)
+            compromissos = CompromissoFinanceiro.objects.filter(usuario_id=usuario_id)
 
-            self.fields["conta_destino"].queryset = Conta.objects.filter(
-                usuario_id=usuario_id
-            )
+            if not self.instance.pk:
+                contas = contas.filter(ativa=True)
+                categorias = categorias.filter(ativa=True)
 
-            self.fields["categoria"].queryset = Categoria.objects.filter(
-                usuario_id=usuario_id
-            )
-
-            self.fields["compromisso_financeiro"].queryset = (
-                CompromissoFinanceiro.objects.filter(
-                    usuario_id=usuario_id
-                )
-            )
+            self.fields["conta_origem"].queryset = contas
+            self.fields["conta_destino"].queryset = contas
+            self.fields["categoria"].queryset = categorias
+            self.fields["compromisso_financeiro"].queryset = compromissos
 
     class Meta:
         model = Movimentacao
