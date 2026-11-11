@@ -141,10 +141,17 @@ class UsuariosViewsTests(DadosMixin, TestCase):
     def test_login_logout_invalido_autenticado(self):
         """Login normaliza caixa/espaços, rejeita credenciais erradas e logout exige POST."""
         url = reverse("usuarios:login")
-        self.assertEqual(self.client.post(url, dict(username=self.u.email, password="errada")).status_code, 200)
+        destino = reverse("usuarios:perfil")
+        tela = self.client.get(url, {"next": destino})
+        self.assertContains(tela, f'name="next" value="{destino}"')
+        self.assertContains(tela, 'class="form-control"')
+        invalido = self.client.post(url, dict(username=self.u.email, password="errada", next=destino))
+        self.assertContains(invalido, 'class="alert alert-danger"')
+        self.assertContains(invalido, f'name="next" value="{destino}"')
         self.assertNotIn("_auth_user_id", self.client.session)
-        r = self.client.post(url, dict(username=" " + self.u.email.upper() + " ", password="Senha-sintetica!482"))
-        self.assertEqual(r.status_code, 302)
+        r = self.client.post(url, dict(username=" " + self.u.email.upper() + " ",
+                                       password="Senha-sintetica!482", next=destino))
+        self.assertRedirects(r, destino, fetch_redirect_response=False)
         self.assertEqual(self.client.get(url).status_code, 302)
         self.assertEqual(self.client.get(reverse("usuarios:logout")).status_code, 405)
         self.assertEqual(self.client.post(reverse("usuarios:logout")).status_code, 302)

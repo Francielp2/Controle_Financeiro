@@ -17,3 +17,12 @@ html:not([data-bs-theme="dark"]) {
     --tblr-btn-bg: color-mix(in oklab, var(--tblr-bg-surface) 94%, var(--tblr-black));
     --tblr-btn-hover-bg: color-mix(in oklab, var(--tblr-bg-surface) 90%, var(--tblr-black));
 }
+
+.chat-financeiro-historico {
+    min-height: min(20rem, 45vh);
+    max-height: min(38rem, 60vh);
+}
+
+.chat-financeiro-texto {
+    white-space: pre-wrap;
+}

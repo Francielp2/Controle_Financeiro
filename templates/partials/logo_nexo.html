@@ -1,0 +1,9 @@
+{% load static %}
+<a class="nexo-logo d-block overflow-hidden rounded-1"
+   href="{% if user.is_authenticated %}{% url 'financeiro:inicio' %}{% else %}{% url 'usuarios:login' %}{% endif %}"
+   aria-label="Nexo — Controle Financeiro">
+    <img src="{% static 'img/nexo-logo-claro.jpeg' %}"
+         class="navbar-brand-image w-100 object-fit-cover hide-theme-dark" alt="">
+    <img src="{% static 'img/nexo-logo-escuro.png' %}"
+         class="navbar-brand-image w-100 object-fit-cover hide-theme-light" alt="">
+</a>

@@ -1,24 +1,17 @@
-{% extends "base.html" %}
+{% extends "usuarios/autenticacao.html" %}
 
-{% block title %} Entrar {% endblock %}   
+{% block title %}Entrar{% endblock %}
+{% block titulo_formulario %}Entrar{% endblock %}
+{% block acao_formulario %}Entrar{% endblock %}
 
-{% block content %}
-    <h2>Entrar</h2>
+{% block campos_extras %}
+    <input type="hidden" name="next" value="{{ next }}">
+{% endblock %}
 
-    <form method = "post">
+{% block link_alternativo %}
+    Ainda não tem conta? <a href="{% url 'usuarios:usuario_criar' %}">Cadastre-se</a>
+{% endblock %}
 
-        {% csrf_token %}
-
-        {{ form.as_p }}
-
-        <input type="hidden" name="next" value="{{ next }}">
-
-        <button type="submit">Entrar</button>
-
-    </form>
-
-    <p>
-        Ainda não tem conta?
-        <a href="{% url 'usuarios:usuario_criar' %}">Cadastre-se</a>
-    </p>
-{% endblock  %}
+{% block alternar_tema %}
+    {% include "partials/alternar_tema_icones.html" with classe_link="link-secondary d-inline-flex p-2" %}
+{% endblock %}

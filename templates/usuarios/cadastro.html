@@ -1,24 +1,11 @@
-{% extends "base.html" %}
+{% extends "usuarios/autenticacao.html" %}
 
 {% block title %}Criar conta{% endblock %}
+{% block titulo_formulario %}Criar conta{% endblock %}
+{% block acao_formulario %}Criar conta{% endblock %}
 
-{% block content %}
-    {% comment %}Base: SignUpCard da página Sign up da demo oficial do Tabler.{% endcomment %}
-    <div class="container container-tight">
-        <form class="card card-md" method="post">
-            {% csrf_token %}
-            <div class="card-body">
-                <h1 class="card-title text-center mb-4">Criar conta</h1>
-                {% include "partials/campos_formulario.html" with form=form only %}
-                <div class="form-footer">
-                    <button class="btn btn-primary w-100" type="submit">Criar conta</button>
-                </div>
-            </div>
-        </form>
-        <div class="text-center text-secondary mt-3">
-            Já tem conta? <a href="{% url 'usuarios:login' %}">Entrar</a>
-        </div>
-    </div>
+{% block link_alternativo %}
+    Já tem conta? <a href="{% url 'usuarios:login' %}">Entrar</a>
 {% endblock %}
 
 {% block scripts %}

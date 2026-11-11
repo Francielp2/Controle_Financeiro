@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block layout %}
+    {% comment %}Base: SingleLayout, SignInCard e SignUpCard da demo oficial do Tabler.{% endcomment %}
+    <main class="page page-center">
+        <div class="container container-tight py-4">
+            <div class="d-flex justify-content-center mb-4">
+                {% include "partials/logo_nexo.html" %}
+            </div>
+
+            {% include "partials/mensagens.html" %}
+            <form class="card card-md" method="post">
+                {% csrf_token %}
+                {% block campos_extras %}{% endblock %}
+                <div class="card-body">
+                    <h1 class="h2 text-center mb-4">{% block titulo_formulario %}{% endblock %}</h1>
+                    {% include "partials/campos_formulario.html" with form=form only %}
+                    <div class="form-footer">
+                        <button class="btn btn-primary w-100" type="submit">{% block acao_formulario %}{% endblock %}</button>
+                    </div>
+                </div>
+            </form>
+
+            <div class="text-center text-secondary mt-3">
+                {% block link_alternativo %}{% endblock %}
+            </div>
+            <div class="text-center mt-3">
+                {% block alternar_tema %}
+                    <a class="btn btn-sm hide-theme-dark" href="{% querystring theme='dark' %}">Modo escuro</a>
+                    <a class="btn btn-sm hide-theme-light" href="{% querystring theme='light' %}">Modo claro</a>
+                {% endblock %}
+            </div>
+        </div>
+    </main>
+{% endblock %}

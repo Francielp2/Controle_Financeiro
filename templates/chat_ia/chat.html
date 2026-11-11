@@ -1,188 +1,100 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Teste do chat{% endblock %}
+{% block title %}Chat IA{% endblock %}
 
 {% block content %}
-<h2>Chat financeiro</h2>
-<p>Tarefa atual: {{ tarefa.titulo }}</p>
+    <div class="page-header mt-0 mb-3">
+        <div class="page-pretitle text-primary">Assistente do Nexo</div>
+        <h1 class="page-title">Chat financeiro</h1>
+    </div>
 
-<form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
-    {% csrf_token %}
-    <button type="submit" name="operacao" value="nova">Nova tarefa</button>
-</form>
-{% if outras_tarefas %}
-<form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
-    {% csrf_token %}
-    <label for="tarefa-anterior">Tarefas anteriores</label>
-    <select id="tarefa-anterior" name="tarefa_id">
-        {% for anterior in outras_tarefas %}
-        <option value="{{ anterior.id }}">{{ anterior.titulo }} ({{ anterior.criada_em|date:"d/m H:i" }})</option>
-        {% endfor %}
-    </select>
-    <button type="submit" name="operacao" value="retomar">Retomar</button>
-</form>
-{% endif %}
+    <div class="row row-cards">
+        <aside class="col-12 col-lg-4 col-xl-3" aria-labelledby="titulo-conversas">
+            <div class="card">
+                <header class="card-header">
+                    <h2 class="card-title" id="titulo-conversas">Conversas</h2>
+                </header>
+                <div class="card-body d-grid gap-3">
+                    <div>
+                        <div class="subheader">Conversa atual</div>
+                        <div class="fw-medium text-break">{{ tarefa.titulo }}</div>
+                    </div>
 
-<div id="mensagens"></div>
-<button id="ocultar-historico" type="button">Ocultar histórico</button>
-<input id="tarefa-id" type="hidden" value="{{ tarefa.id }}">
-{{ mensagens_iniciais|json_script:"mensagens-iniciais" }}
+                    <form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
+                        {% csrf_token %}
+                        <button class="btn btn-primary w-100" type="submit" name="operacao" value="nova">
+                            Nova conversa
+                        </button>
+                    </form>
 
-<form id="form-chat">
-    {% csrf_token %}
-    <input id="mensagem" type="text" maxlength="1000" required
-           placeholder="Escreva sua pergunta" class="w-75">
-    <button id="enviar" type="submit">Enviar</button>
-</form>
+                    {% if outras_tarefas %}
+                        <form method="post" action="{% url 'chat_ia:gerenciar_tarefa' %}">
+                            {% csrf_token %}
+                            <label for="tarefa-anterior" class="form-label">Conversas anteriores</label>
+                            <select id="tarefa-anterior" name="tarefa_id" class="form-select">
+                                {% for anterior in outras_tarefas %}
+                                    <option value="{{ anterior.id }}">
+                                        {{ anterior.titulo }} ({{ anterior.criada_em|date:"d/m H:i" }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            <button class="btn w-100 mt-2" type="submit" name="operacao" value="retomar">
+                                Retomar conversa
+                            </button>
+                        </form>
+                    {% else %}
+                        <p class="text-secondary small mb-0">Nenhuma conversa anterior.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </aside>
 
-<script>
-    const formulario = document.getElementById("form-chat");
-    const campo = document.getElementById("mensagem");
-    const mensagens = document.getElementById("mensagens");
-    const botao = document.getElementById("enviar");
-    const tarefaId = document.getElementById("tarefa-id").value;
+        <section class="col-12 col-lg-8 col-xl-9" aria-labelledby="titulo-assistente">
+            <div class="card">
+                <header class="card-header flex-wrap gap-2">
+                    <span class="avatar bg-primary-lt" aria-hidden="true">IA</span>
+                    <div class="me-auto">
+                        <h2 class="card-title" id="titulo-assistente">Assistente financeiro</h2>
+                        <div class="text-secondary small">Consulte seus dados e prepare lançamentos.</div>
+                    </div>
+                    <button id="ocultar-historico" class="btn btn-sm" type="button" aria-controls="mensagens" disabled>
+                        Ocultar histórico
+                    </button>
+                </header>
 
-    // Remove as mensagens visíveis; novas respostas continuam aparecendo.
-    document.getElementById("ocultar-historico").addEventListener("click", function () {
-        mensagens.replaceChildren();
-    });
+                <div id="historico-chat" class="card-body chat chat-financeiro-historico scrollable"
+                     role="region" aria-label="Histórico da conversa" tabindex="0">
+                    <div id="estado-chat" class="empty">
+                        <p class="empty-title">Envie uma mensagem</p>
+                        <p class="empty-subtitle text-secondary">
+                            Experimente perguntar quanto você gastou neste mês.
+                        </p>
+                    </div>
+                    <div id="mensagens" class="chat-bubbles" role="log" aria-label="Mensagens da conversa"></div>
+                    <div id="chat-aguardando" class="chat-bubble mt-3 d-none" role="status">
+                        <span class="text-secondary">Aguardando resposta <span class="animated-dots" aria-hidden="true"></span></span>
+                    </div>
+                </div>
 
-    // Mostra texto sem interpretá-lo como HTML.
-    function mostrarMensagem(remetente, texto) {
-        const paragrafo = document.createElement("p");
-        const nome = document.createElement("strong");
-        nome.textContent = remetente + ": ";
-        paragrafo.append(nome, document.createTextNode(texto));
-        mensagens.appendChild(paragrafo);
-    }
+                <form id="form-chat" class="card-footer" method="post" action="{% url 'chat_ia:conversar' %}"
+                      data-confirmar-url="{% url 'chat_ia:confirmar' %}">
+                    {% csrf_token %}
+                    <input id="tarefa-id" type="hidden" value="{{ tarefa.id }}">
+                    <label class="visually-hidden" for="mensagem">Mensagem para o assistente</label>
+                    <div class="input-group">
+                        <input id="mensagem" name="mensagem" type="text" class="form-control" maxlength="1000" required
+                               autocomplete="off" placeholder="Escreva sua pergunta">
+                        <button id="enviar" class="btn btn-primary" type="submit">Enviar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
 
-    // Reconstitui os detalhes e as confirmações salvos junto à tarefa.
-    function mostrarExibicao(exibicao) {
-        if (!exibicao) return;
+    {{ mensagens_iniciais|json_script:"mensagens-iniciais" }}
+{% endblock %}
 
-        for (const lista of exibicao.listas) {
-            const detalhes = document.createElement("details");
-            const titulo = document.createElement("summary");
-            const itens = document.createElement("ul");
-            titulo.textContent = lista.titulo;
-            for (const linha of lista.linhas) {
-                const item = document.createElement("li");
-                item.textContent = linha;
-                itens.appendChild(item);
-            }
-            detalhes.append(titulo, itens);
-            mensagens.appendChild(detalhes);
-        }
-
-        for (const previa of exibicao.previas) {
-            const bloco = document.createElement("div");
-            const titulo = document.createElement("strong");
-            const campos = document.createElement("ul");
-            titulo.textContent = previa.titulo;
-            for (const linha of previa.linhas) {
-                const item = document.createElement("li");
-                item.textContent = linha;
-                campos.appendChild(item);
-            }
-            bloco.append(titulo, campos);
-            mensagens.appendChild(bloco);
-
-            if (previa.situacao === "confirmada" || previa.situacao === "expirada") {
-                const estado = document.createElement("span");
-                estado.textContent = previa.situacao === "confirmada"
-                    ? "Confirmado" : "Prazo de confirmação encerrado";
-                bloco.appendChild(estado);
-                continue;
-            }
-
-            const confirmar = document.createElement("button");
-            confirmar.type = "button";
-            confirmar.textContent = "Confirmar e gravar";
-            bloco.appendChild(confirmar);
-
-            confirmar.addEventListener("click", async function () {
-                confirmar.disabled = true;
-
-                try {
-                    const resposta = await fetch("{% url 'chat_ia:confirmar' %}", {
-                        method: "POST",
-                        credentials: "same-origin",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": formulario.querySelector(
-                                "[name=csrfmiddlewaretoken]"
-                            ).value
-                        },
-                        body: JSON.stringify({id_acao: previa.id_acao, tarefa_id: tarefaId})
-                    });
-
-                    const resultado = await resposta.json();
-                    mostrarMensagem(
-                        resultado.confirmada ? "Sistema" : "Erro",
-                        resultado.mensagem || resultado.erro || "Não foi possível confirmar."
-                    );
-                    if (resultado.confirmada) {
-                        confirmar.textContent = "Confirmado";
-                    } else if (resposta.status !== 409) {
-                        confirmar.disabled = false;
-                    }
-                } catch (erro) {
-                    mostrarMensagem("Erro", "Falha ao confirmar a ação.");
-                    confirmar.disabled = false;
-                }
-            });
-        }
-    }
-
-    // A página carrega a conversa da tarefa, inclusive após navegar para outra página.
-    const anteriores = JSON.parse(
-        document.getElementById("mensagens-iniciais").textContent
-    );
-    for (const item of anteriores) {
-        const remetente = item.papel === "usuario" ? "Você"
-            : item.papel === "sistema" ? "Sistema" : "IA";
-        mostrarMensagem(remetente, item.texto);
-        mostrarExibicao(item.exibicao);
-    }
-
-    formulario.addEventListener("submit", async function (evento) {
-        evento.preventDefault();
-
-        const mensagem = campo.value.trim();
-        if (!mensagem) return;
-
-        mostrarMensagem("Você", mensagem);
-        campo.value = "";
-        botao.disabled = true;
-
-        try {
-            const resposta = await fetch("{% url 'chat_ia:conversar' %}", {
-                method: "POST",
-                credentials: "same-origin",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRFToken": formulario.querySelector(
-                        "[name=csrfmiddlewaretoken]"
-                    ).value
-                },
-                body: JSON.stringify({mensagem: mensagem, tarefa_id: tarefaId})
-            });
-
-            const dados = await resposta.json();
-
-            if (!resposta.ok) {
-                mostrarMensagem("Erro", dados.erro || "Não foi possível responder.");
-                return;
-            }
-
-            mostrarMensagem("IA", dados.resposta);
-            mostrarExibicao(dados.exibicao);
-        } catch (erro) {
-            mostrarMensagem("Erro", "Falha ao conectar ao chat.");
-        } finally {
-            botao.disabled = false;
-            campo.focus();
-        }
-    });
-</script>
+{% block scripts %}
+    <script src="{% static 'chat_ia/js/chat.js' %}" defer></script>
 {% endblock %}

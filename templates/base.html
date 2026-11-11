@@ -11,6 +11,7 @@
 </head>
 <body>
     <script src="{% static 'vendor/tabler/js/tabler-theme.min.js' %}"></script>
+    {% block layout %}
     <div class="page">
         <div class="position-static">
             {% include "partials/navegacao_tabler.html" %}
@@ -19,15 +20,14 @@
         <div class="page-wrapper">
             <main class="page-body">
                 <div class="container-xl">
-                    {% for message in messages %}
-                        <div class="alert alert-info" role="alert">{{ message }}</div>
-                    {% endfor %}
+                    {% include "partials/mensagens.html" %}
 
                     {% block content %}{% endblock %}
                 </div>
             </main>
         </div>
     </div>
+    {% endblock %}
     <script src="{% static 'vendor/tabler/js/tabler.min.js' %}" defer></script>
     {% block scripts %}{% endblock %}
 </body>
