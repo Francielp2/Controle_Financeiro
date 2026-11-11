@@ -55,6 +55,9 @@ class CompromissoFinanceiroForm(forms.ModelForm):
             self.fields["conta"].queryset = contas
             self.fields["categoria"].queryset = categorias
 
+        if self.instance.pk and self.instance.movimentacoes.exists():
+            self.fields["valor_pago_recebido_inicial"].disabled = True
+
     class Meta:
         model = CompromissoFinanceiro
         fields = (
@@ -65,7 +68,7 @@ class CompromissoFinanceiroForm(forms.ModelForm):
             "pessoa",
             "tipo",
             "valor_total",
-            "valor_pago_recebido",
+            "valor_pago_recebido_inicial",
             "data_vencimento",
         )
 
@@ -86,7 +89,8 @@ class MovimentacaoForm(forms.ModelForm):
 
             contas = Conta.objects.filter(usuario_id=usuario_id)
             categorias = Categoria.objects.filter(usuario_id=usuario_id)
-            compromissos = CompromissoFinanceiro.objects.filter(usuario_id=usuario_id)
+            compromissos = CompromissoFinanceiro.objects.filter(
+                usuario_id=usuario_id)
 
             if not self.instance.pk:
                 contas = contas.filter(ativa=True)

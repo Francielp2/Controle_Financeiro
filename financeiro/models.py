@@ -233,6 +233,17 @@ class CompromissoFinanceiro(models.Model):
         decimal_places=2,
     )
 
+    valor_pago_recebido_inicial = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0,
+        verbose_name="Valor pago/recebido antes do cadastro",
+        help_text=(
+            "Valor já pago ou recebido antes do cadastro desse compromisso. "
+            "Não altera o saldo das contas. "
+        ),
+    )
+
     valor_pago_recebido = models.DecimalField(
         max_digits=12,
         decimal_places=2,
@@ -268,25 +279,13 @@ class CompromissoFinanceiro(models.Model):
         restante = self.valor_total - self.valor_pago_recebido
         return max(restante, Decimal("0.00"))
 
+    # Recalcula o acumulado a partir so inicial e das movimentações
+
     def recalcular_valor_pago(self):
-        total = (
-            self.movimentacoes.aggregate(total=Sum("valor"))["total"]
-            or Decimal("0.00")
-        )
-
-        if total > self.valor_total:
-            raise ValidationError(
-                {
-                    "valor_pago_recebido": (
-                        "A soma das movimentações não pode superar o valor total."
-                    )
-                }
-            )
-
-        self.valor_pago_recebido = total
-        self.save(update_fields=["valor_pago_recebido", "status"])
+        self.save(update_fields=["valor_pago_recebido",  "status"])
 
     # VERIFICA SE O COMPROMISSO ESTA QUITADO
+
     def esta_quitado(self):
         return self.valor_pago_recebido >= self.valor_total
 
@@ -334,27 +333,68 @@ class CompromissoFinanceiro(models.Model):
 
         if self.valor_total is not None and self.valor_total <= 0:
             raise ValidationError(
-                {"valor_total": "O valor deve ser maior que zero."})
-
-        if self.valor_pago_recebido is not None and self.valor_pago_recebido < 0:
-            raise ValidationError(
-                {
-                    "valor_pago_recebido": "O valor não pode ser negativo."
-                }
+                {"valor_total": "O valor deve ser maior que zero."}
             )
 
         if (
-            self.valor_total is not None
-            and self.valor_pago_recebido is not None
-            and self.valor_pago_recebido > self.valor_total
+            self.valor_pago_recebido_inicial is not None
+            and self.valor_pago_recebido_inicial < 0
         ):
             raise ValidationError(
                 {
-                    "valor_pago_recebido": (
-                        "O valor registrado não pode superar o total."
+                    "valor_pago_recebido_inicial": (
+                        "O valor inicial não pode ser negativo."
                     )
                 }
             )
+
+        total_movimentacoes = Decimal("0.00")
+
+        if self.pk:
+            movimentacoes = self.movimentacoes.all()
+
+            if movimentacoes.exists():
+                valor_inicial_anterior = (
+                    CompromissoFinanceiro.objects
+                    .values_list("valor_pago_recebido_inicial", flat=True)
+                    .get(pk=self.pk)
+                )
+
+                if (
+                    self.valor_pago_recebido_inicial
+                    != valor_inicial_anterior
+                ):
+                    raise ValidationError(
+                        {
+                            "valor_pago_recebido_inicial": (
+                                "Este valor não pode ser alterado porque "
+                                "já existem movimentações vinculadas."
+                            )
+                        }
+                    )
+
+                total_movimentacoes = (
+                    movimentacoes.aggregate(total=Sum("valor"))["total"]
+                    or Decimal("0.00")
+                )
+
+        if self.valor_pago_recebido_inicial is not None:
+            self.valor_pago_recebido = (
+                self.valor_pago_recebido_inicial + total_movimentacoes
+            )
+
+            if (
+                self.valor_total is not None
+                and self.valor_pago_recebido > self.valor_total
+            ):
+                raise ValidationError(
+                    {
+                        "valor_total": (
+                            "O total do compromisso não pode ser menor "
+                            "que o valor inicial mais as movimentações."
+                        )
+                    }
+                )
 
         if self.conta_id and self.conta.usuario_id != self.usuario_id:
             raise ValidationError(

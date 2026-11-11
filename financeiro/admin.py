@@ -44,6 +44,7 @@ class ContaAdmin(admin.ModelAdmin):
     def mostrar_saldo_atual(self, conta):
         return conta.saldo_atual
 
+
 @admin.register(Categoria)
 class CategoriaAdmin(admin.ModelAdmin):
     list_display = (
@@ -100,6 +101,7 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
         "data_criacao",
         "status",
         "mostrar_valor_restante",
+        "valor_pago_recebido",
     )
 
     list_select_related = (
@@ -113,6 +115,14 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
     @admin.display(description="Valor restante")
     def mostrar_valor_restante(self, compromisso):
         return compromisso.valor_restante()
+
+    def get_readonly_fields(self, request, obj=None):
+        campos = tuple(super().get_readonly_fields(request, obj))
+
+        if obj is not None and obj.movimentacoes.exists():
+            campos += ("valor_pago_recebido_inicial",)
+
+            return campos
 
 
 @admin.register(Movimentacao)
