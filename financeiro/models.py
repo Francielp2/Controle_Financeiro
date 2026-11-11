@@ -442,22 +442,6 @@ class CompromissoFinanceiro(models.Model):
     def atualizar_status(self):
         self.status = self.situacao
 
-    # REGISTRA PAGAMENTO DO COMPROMISSO
-    def registrar_pagamento(self, valor):
-        if self.tipo != self.Tipo.PAGAR:
-            raise ValidationError("Este compromisso não é do tipo a pagar.")
-
-        self.valor_pago_recebido += Decimal(str(valor))
-        self.save()
-
-    # REGISTRA RECEBIMENTO DO COMPROMISSO
-    def registrar_recebimento(self, valor):
-        if self.tipo != self.Tipo.RECEBER:
-            raise ValidationError("Este compromisso não é do tipo a receber.")
-
-        self.valor_pago_recebido += Decimal(str(valor))
-        self.save()
-
     # SALVA O COMPROMISSO APOS ATUALIZAR STATUS
     def save(self, *args, **kwargs):
         self.full_clean()
