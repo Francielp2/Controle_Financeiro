@@ -105,6 +105,20 @@ class ViewsTests(DadosMixin, TestCase):
         self.client.force_login(user)
         self.assertRedirects(self.client.get(reverse("financeiro:inicio")), reverse("admin:index"), fetch_redirect_response=False)
 
+    def test_detalhes_exibem_dados_e_links_relacionados(self):
+        compromisso = self.compromisso()
+        movimento = self.movimento(compromisso_financeiro=compromisso)
+        url_movimento = reverse("financeiro:movimentacao_detalhar", args=[movimento.pk])
+        for nome, objeto in (("conta", self.conta), ("categoria", self.cat), ("compromisso", compromisso)):
+            with self.subTest(nome=nome):
+                resposta = self.client.get(reverse(f"financeiro:{nome}_detalhar", args=[objeto.pk]))
+                self.assertContains(resposta, 'class="datagrid mb-0"')
+                self.assertContains(resposta, f'href="{url_movimento}"')
+
+        resposta = self.client.get(url_movimento)
+        self.assertContains(resposta, 'class="datagrid mb-0"')
+        self.assertContains(resposta, "R$ 20,00")
+
     def test_listagens_filtram_usuario(self):
         """Listagens e painel retornam apenas os dados do usuário autenticado."""
         c, m = self.compromisso(), self.movimento()

@@ -1,53 +1,67 @@
-{% extends "base.html" %}
+{% extends "financeiro/detalhes.html" %}
 
 {% block title %}Detalhes do compromisso{% endblock %}
+{% block tipo_detalhe %}Compromisso financeiro{% endblock %}
+{% block titulo_detalhe %}{{ compromisso.titulo }}{% endblock %}
 
-{% block content %}
-    <h2>{{ compromisso.titulo }}</h2>
-    <p><strong>Pessoa:</strong> {{ compromisso.pessoa|default:"-" }}</p>
-    <p><strong>Tipo:</strong> {{ compromisso.get_tipo_display }}</p>
-    <p><strong>Conta:</strong> {{ compromisso.conta|default:"-" }}</p>
-    <p><strong>Categoria:</strong> {{ compromisso.categoria|default:"-" }}</p>
-    <p><strong>Descrição:</strong> {{ compromisso.descricao|default:"-" }}</p>
-    <p><strong>Valor total:</strong> R$ {{ compromisso.valor_total }}</p>
-    <p>
-        <strong>Pago/recebido:</strong>
-        R$ {{ compromisso.valor_pago_recebido }}
-    </p>
-    <p><strong>Restante:</strong> R$ {{ compromisso.valor_restante }}</p>
-    <p><strong>Vencimento:</strong> {{ compromisso.data_vencimento }}</p>
-    <p><strong>Status:</strong> {{ compromisso.situacao_display }}</p>
-
-    <p>
-        <a href="{% url 'financeiro:compromisso_editar' compromisso.pk %}">
-            Editar
+{% block acoes_detalhe %}
+    {% include "financeiro/partials/acoes_detalhe.html" with pk=compromisso.pk listar="financeiro:compromisso_listar" editar="financeiro:compromisso_editar" excluir="financeiro:compromisso_excluir" only %}
+    {% if not compromisso.esta_quitado %}
+        <a class="btn" href="{% url 'financeiro:compromisso_registrar_movimentacao' compromisso.pk %}">
+            {% if compromisso.tipo == "PAGAR" %}Registrar pagamento{% else %}Registrar recebimento{% endif %}
         </a>
-        <a href="{% url 'financeiro:compromisso_excluir' compromisso.pk %}">
-            Excluir
-        </a>
-        <a href="{% url 'financeiro:compromisso_listar' %}">Voltar</a>
-                {% if not compromisso.esta_quitado %}
-            <a href="{% url 'financeiro:compromisso_registrar_movimentacao' compromisso.pk %}">
-                {% if compromisso.tipo == "PAGAR" %}
-                    Registrar pagamento
-                {% else %}
-                    Registrar recebimento
-                {% endif %}
-            </a>
-        {% endif %}
-    </p>
+    {% endif %}
+{% endblock %}
 
-    <h3>Movimentações vinculadas</h3>
+{% block dados_detalhe %}
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Pessoa</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ compromisso.pessoa|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Tipo</dt>
+        <dd class="datagrid-content mb-0">{{ compromisso.get_tipo_display }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Conta</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ compromisso.conta|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Categoria</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ compromisso.categoria|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Descrição</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ compromisso.descricao|default:"—"|linebreaksbr }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Valor total</dt>
+        <dd class="datagrid-content mb-0 text-nowrap">R$ {{ compromisso.valor_total|floatformat:"2g" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Pago/recebido</dt>
+        <dd class="datagrid-content mb-0 text-nowrap">R$ {{ compromisso.valor_pago_recebido|floatformat:"2g" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Restante</dt>
+        <dd class="datagrid-content mb-0 fw-medium text-nowrap">R$ {{ compromisso.valor_restante|floatformat:"2g" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Vencimento</dt>
+        <dd class="datagrid-content mb-0">{{ compromisso.data_vencimento|date:"d/m/Y" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Status</dt>
+        <dd class="datagrid-content mb-0">
+            {% with situacao=compromisso.situacao %}
+                <span class="badge {% if situacao == 'QUITADO' %}bg-green-lt{% elif situacao == 'ATRASADO' %}bg-red-lt{% elif situacao == 'PARCIAL' %}bg-yellow-lt{% else %}bg-secondary-lt{% endif %}">
+                    {{ compromisso.situacao_display }}
+                </span>
+            {% endwith %}
+        </dd>
+    </div>
+{% endblock %}
 
-    <ul>
-        {% for movimentacao in movimentacoes %}
-            <li>
-                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
-                    {{ movimentacao }}
-                </a>
-            </li>
-        {% empty %}
-            <li>Nenhuma movimentação vinculada.</li>
-        {% endfor %}
-    </ul>
+{% block relacionados %}
+    {% include "financeiro/partials/movimentacoes_relacionadas.html" with titulo="Movimentações vinculadas" movimentacoes=movimentacoes vazio="Nenhuma movimentação vinculada." only %}
 {% endblock %}

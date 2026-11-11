@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% comment %}Base: Page header e Data grid da demo oficial do Tabler.{% endcomment %}
+    <div class="page-header d-print-none mt-0 mb-3">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle">{% block tipo_detalhe %}{% endblock %}</div>
+                <h1 class="page-title text-break">{% block titulo_detalhe %}{% endblock %}</h1>
+            </div>
+            <div class="col-12 col-lg-auto ms-auto">
+                <div class="btn-list">
+                    {% block acoes_detalhe %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row row-cards">
+        <div class="col-12">
+            <section class="card" aria-labelledby="dados-detalhe">
+                <header class="card-header">
+                    <h2 class="card-title" id="dados-detalhe">Dados do registro</h2>
+                </header>
+                <div class="card-body">
+                    <dl class="datagrid mb-0">
+                        {% block dados_detalhe %}{% endblock %}
+                    </dl>
+                </div>
+            </section>
+        </div>
+        {% block relacionados %}{% endblock %}
+    </div>
+{% endblock %}

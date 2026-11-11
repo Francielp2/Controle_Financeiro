@@ -1,32 +1,60 @@
-{% extends "base.html" %}
+{% extends "financeiro/detalhes.html" %}
 
 {% block title %}Detalhes da movimentação{% endblock %}
+{% block tipo_detalhe %}Movimentação{% endblock %}
+{% block titulo_detalhe %}Movimentação {{ movimentacao.pk }}{% endblock %}
 
-{% block content %}
-    <h2>Movimentação {{ movimentacao.pk }}</h2>
+{% block acoes_detalhe %}
+    {% include "financeiro/partials/acoes_detalhe.html" with pk=movimentacao.pk listar="financeiro:movimentacao_listar" editar="financeiro:movimentacao_editar" excluir="financeiro:movimentacao_excluir" only %}
+{% endblock %}
 
-    <p><strong>Tipo:</strong> {{ movimentacao.get_tipo_display }}</p>
-    <p><strong>Valor:</strong> R$ {{ movimentacao.valor }}</p>
-    <p><strong>Descrição:</strong> {{ movimentacao.descricao|default:"-" }}</p>
-    <p><strong>Data:</strong> {{ movimentacao.data }}</p>
-    <p><strong>Hora:</strong> {{ movimentacao.hora }}</p>
-    <p><strong>Origem:</strong> {{ movimentacao.conta_origem|default:"-" }}</p>
-    <p><strong>Destino:</strong> {{ movimentacao.conta_destino|default:"-" }}</p>
-    <p><strong>Categoria:</strong> {{ movimentacao.categoria|default:"-" }}</p>
-    <p>
-        <strong>Compromisso:</strong>
-        {{ movimentacao.compromisso_financeiro|default:"-" }}
-    </p>
-    <p><strong>Criada em:</strong> {{ movimentacao.criado_em }}</p>
-    <p><strong>Atualizada em:</strong> {{ movimentacao.atualizado_em }}</p>
-
-    <p>
-        <a href="{% url 'financeiro:movimentacao_editar' movimentacao.pk %}">
-            Editar
-        </a>
-        <a href="{% url 'financeiro:movimentacao_excluir' movimentacao.pk %}">
-            Excluir
-        </a>
-        <a href="{% url 'financeiro:movimentacao_listar' %}">Voltar</a>
-    </p>
+{% block dados_detalhe %}
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Tipo</dt>
+        <dd class="datagrid-content mb-0">
+            <span class="badge {% if movimentacao.tipo == 'ENTRADA' %}bg-green-lt{% elif movimentacao.tipo == 'SAIDA' %}bg-red-lt{% else %}bg-primary-lt{% endif %}">
+                {{ movimentacao.get_tipo_display }}
+            </span>
+        </dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Valor</dt>
+        <dd class="datagrid-content mb-0 fw-medium text-nowrap">R$ {{ movimentacao.valor|floatformat:"2g" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Descrição</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ movimentacao.descricao|default:"—"|linebreaksbr }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Data</dt>
+        <dd class="datagrid-content mb-0">{{ movimentacao.data|date:"d/m/Y" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Hora</dt>
+        <dd class="datagrid-content mb-0">{{ movimentacao.hora|time:"H:i" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Origem</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ movimentacao.conta_origem|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Destino</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ movimentacao.conta_destino|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Categoria</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ movimentacao.categoria|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Compromisso</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ movimentacao.compromisso_financeiro|default:"—" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Criada em</dt>
+        <dd class="datagrid-content mb-0">{{ movimentacao.criado_em|date:"d/m/Y H:i" }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Atualizada em</dt>
+        <dd class="datagrid-content mb-0">{{ movimentacao.atualizado_em|date:"d/m/Y H:i" }}</dd>
+    </div>
 {% endblock %}

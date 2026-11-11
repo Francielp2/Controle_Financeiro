@@ -1,40 +1,53 @@
-{% extends "base.html" %}
+{% extends "financeiro/detalhes.html" %}
 
 {% block title %}Detalhes da categoria{% endblock %}
+{% block tipo_detalhe %}Categoria{% endblock %}
+{% block titulo_detalhe %}{{ categoria.nome }}{% endblock %}
 
-{% block content %}
-    <h2>{{ categoria.nome }}</h2>
-    <p><strong>Tipo:</strong> {{ categoria.get_tipo_display }}</p>
-    <p><strong>Descrição:</strong> {{ categoria.descricao|default:"-" }}</p>
-    <p><strong>Ativa:</strong> {{ categoria.ativa|yesno:"Sim,Não" }}</p>
+{% block acoes_detalhe %}
+    {% include "financeiro/partials/acoes_detalhe.html" with pk=categoria.pk listar="financeiro:categoria_listar" editar="financeiro:categoria_editar" excluir="financeiro:categoria_excluir" only %}
+{% endblock %}
 
-    <p>
-        <a href="{% url 'financeiro:categoria_editar' categoria.pk %}">
-            Editar
-        </a>
-        <a href="{% url 'financeiro:categoria_excluir' categoria.pk %}">
-            Excluir
-        </a>
-        <a href="{% url 'financeiro:categoria_listar' %}">Voltar</a>
-    </p>
+{% block dados_detalhe %}
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Tipo</dt>
+        <dd class="datagrid-content mb-0">
+            <span class="badge {% if categoria.tipo == 'ENTRADA' %}bg-green-lt{% else %}bg-red-lt{% endif %}">
+                {{ categoria.get_tipo_display }}
+            </span>
+        </dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Descrição</dt>
+        <dd class="datagrid-content mb-0 text-break">{{ categoria.descricao|default:"—"|linebreaksbr }}</dd>
+    </div>
+    <div class="datagrid-item">
+        <dt class="datagrid-title">Situação</dt>
+        <dd class="datagrid-content mb-0">
+            {% if categoria.ativa %}
+                <span class="badge bg-green-lt">Ativa</span>
+            {% else %}
+                <span class="badge bg-secondary-lt">Inativa</span>
+            {% endif %}
+        </dd>
+    </div>
+{% endblock %}
 
-    <h3>Movimentações</h3>
-
-    <ul>
-        {% for movimentacao in movimentacoes %}
-            <li>{{ movimentacao }}</li>
-        {% empty %}
-            <li>Nenhuma movimentação.</li>
-        {% endfor %}
-    </ul>
-
-    <h3>Compromissos</h3>
-
-    <ul>
-        {% for compromisso in compromissos %}
-            <li>{{ compromisso }}</li>
-        {% empty %}
-            <li>Nenhum compromisso.</li>
-        {% endfor %}
-    </ul>
+{% block relacionados %}
+    {% include "financeiro/partials/movimentacoes_relacionadas.html" with titulo="Movimentações" movimentacoes=movimentacoes vazio="Nenhuma movimentação." duas_colunas=True only %}
+    <div class="col-12 col-lg-6">
+        <section class="card h-100" aria-labelledby="titulo-compromissos-relacionados">
+            <header class="card-header">
+                <h2 class="card-title" id="titulo-compromissos-relacionados">Compromissos</h2>
+            </header>
+            <div class="list-group list-group-flush">
+                {% for compromisso in compromissos %}
+                    <a class="list-group-item list-group-item-action text-break"
+                       href="{% url 'financeiro:compromisso_detalhar' compromisso.pk %}">{{ compromisso.titulo }}</a>
+                {% empty %}
+                    <div class="list-group-item text-secondary">Nenhum compromisso.</div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
 {% endblock %}

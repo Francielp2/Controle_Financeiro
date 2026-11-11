@@ -1,0 +1,34 @@
+{% comment %}Base: tabela em cartão da página Tables do Tabler.{% endcomment %}
+<div class="col-12{% if duas_colunas %} col-lg-6{% endif %}">
+    <section class="card h-100" aria-labelledby="titulo-movimentacoes-relacionadas">
+        <header class="card-header">
+            <h2 class="card-title" id="titulo-movimentacoes-relacionadas">{{ titulo }}</h2>
+        </header>
+        <div class="table-responsive" tabindex="0" role="region" aria-labelledby="titulo-movimentacoes-relacionadas">
+            <table class="table table-vcenter table-mobile-md card-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Valor</th>
+                        <th scope="col">Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for movimentacao in movimentacoes %}
+                        <tr>
+                            <td data-label="Tipo">
+                                <a href="{% url 'financeiro:movimentacao_detalhar' movimentacao.pk %}">
+                                    {{ movimentacao.get_tipo_display }}
+                                </a>
+                            </td>
+                            <td data-label="Valor" class="text-nowrap">R$ {{ movimentacao.valor|floatformat:"2g" }}</td>
+                            <td data-label="Data">{{ movimentacao.data|date:"d/m/Y" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="3" class="text-secondary py-4">{{ vazio }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

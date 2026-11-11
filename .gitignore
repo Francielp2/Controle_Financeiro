@@ -26,6 +26,10 @@ htmlcov/
 .vscode/
 .idea/
 
+# Ferramentas locais de IA
+/.agents/
+/.codex/
+
 # Sistema operacional
 .DS_Store
 Thumbs.db
