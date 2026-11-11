@@ -1,11 +1,22 @@
+from datetime import datetime
+from itertools import cycle
+
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import F, Q, Sum
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.formats import date_format, number_format
 from django.contrib.auth.decorators import login_required
 from .concorrencia import salvar_formulario_com_tratamento, excluir_com_tratamento
+from .consultas import (
+    compromissos_pendentes,
+    evolucao_mensal,
+    periodo_do_mes,
+    saldo_por_conta,
+    totais_por_categoria,
+)
 
 from .forms import (
     CategoriaForm,
@@ -18,19 +29,150 @@ from .models import (
     CompromissoFinanceiro,
     Conta,
     Movimentacao,
+    dinheiro,
 )
 from .decorators import perfil_obrigatorio
+
+
+def _grafico_por_categoria(usuario, mes, mes_padrao, tipo, cor):
+    try:
+        mes_selecionado = datetime.strptime(mes, "%Y-%m").date()
+    except ValueError:
+        mes_selecionado = mes_padrao
+
+    inicio, fim = periodo_do_mes(mes_selecionado)
+    totais = totais_por_categoria(usuario, inicio, fim, tipo)
+    return inicio.isoformat()[:7], {
+        "cores": [cor],
+        "horizontal": True,
+        "altura": max(288, 32 * len(totais) + 60),
+        "categorias": [item["categoria"] for item in totais],
+        "series": [{
+            "name": f"{tipo.label}s",
+            "data": [int(item["total"] * 100) for item in totais],
+        }],
+    }
+
+
+def _grafico_saldo_por_conta(usuario):
+    saldos = saldo_por_conta(usuario)
+    saldos["contas"].sort(key=lambda conta: conta["conta"].casefold())
+    cores_positivas = cycle(("primary", "azure", "teal", "indigo", "orange", "green", "yellow"))
+    series = []
+    cores = []
+    detalhes = []
+
+    for conta in saldos["contas"]:
+        saldo = conta["saldo"]
+        conta["saldo_formatado"] = f"R$ {number_format(saldo, decimal_pos=2, force_grouping=True)}"
+        if saldo > 0:
+            conta["cor"] = next(cores_positivas)
+        elif saldo < 0:
+            conta["cor"] = "red"
+        else:
+            conta["cor"] = "secondary"
+
+        if saldo:
+            series.append(int(abs(saldo) * 100))
+            cores.append(f"var(--tblr-{conta['cor']})")
+            detalhes.append({"conta": conta["conta"], "saldo": conta["saldo_formatado"]})
+
+    return saldos, {"series": series, "cores": cores, "detalhes": detalhes}
+
+
+def _series_compromissos_em_aberto(usuario, dias):
+    grupos = compromissos_pendentes(usuario, dias)
+    restante = F("valor_total") - F("valor_pago_recebido")
+    totais = [
+        grupos[grupo].aggregate(
+            pagar=Sum(restante, filter=Q(tipo=CompromissoFinanceiro.Tipo.PAGAR)),
+            receber=Sum(restante, filter=Q(tipo=CompromissoFinanceiro.Tipo.RECEBER)),
+        )
+        for grupo in ("atrasados", "proximos")
+    ]
+
+    return [
+        {"name": "A pagar", "data": [int(dinheiro(total["pagar"]) * 100) for total in totais]},
+        {"name": "A receber", "data": [int(dinheiro(total["receber"]) * 100) for total in totais]},
+    ]
 
 
 # VIEW DA PAGINA INICIAL
 @login_required
 @perfil_obrigatorio
 def inicio(request):
+    periodos_mensais = (3, 6, 12)
+    periodo_fluxo = request.GET.get("meses_fluxo", "6")
+    meses_fluxo = int(periodo_fluxo) if periodo_fluxo in {"3", "6", "12"} else 6
+    fluxo = evolucao_mensal(request.usuario, meses=meses_fluxo)
+
+    periodo_resultado = request.GET.get("meses_resultado", "6")
+    meses_resultado = int(periodo_resultado) if periodo_resultado in {"3", "6", "12"} else 6
+    resultado = fluxo if meses_resultado == meses_fluxo else evolucao_mensal(
+        request.usuario, meses=meses_resultado,
+    )
+    valores_resultado = [int(item["resultado"] * 100) for item in resultado]
+    verde = "var(--tblr-green)"
+    vermelho = "var(--tblr-red)"
+
+    inicio_mes, fim_mes = periodo_do_mes()
+    mes_saidas, dados_saidas = _grafico_por_categoria(
+        request.usuario, request.GET.get("mes_saidas", ""), inicio_mes, Movimentacao.Tipo.SAIDA, vermelho,
+    )
+    mes_entradas, dados_entradas = _grafico_por_categoria(
+        request.usuario, request.GET.get("mes_entradas", ""), inicio_mes, Movimentacao.Tipo.ENTRADA, verde,
+    )
+    saldos_contas, dados_saldos = _grafico_saldo_por_conta(request.usuario)
+    prazos_compromissos = (7, 15, 30)
+    prazo_compromissos = request.GET.get("dias_compromissos", "7")
+    dias_compromissos = {str(dias): dias for dias in prazos_compromissos}.get(prazo_compromissos, 7)
+    series_compromissos = _series_compromissos_em_aberto(request.usuario, dias_compromissos)
+
     contexto = {
         "quantidade_contas": request.usuario.contas.count(),
         "quantidade_categorias": request.usuario.categorias.count(),
-        "quantidade_compromissos": request.usuario.compromissos.count(),
-        "quantidade_movimentacoes": request.usuario.movimentacoes.count(),
+        "quantidade_compromissos": request.usuario.compromissos.filter(
+            data_vencimento__range=(inicio_mes, fim_mes),
+        ).count(),
+        "quantidade_movimentacoes": request.usuario.movimentacoes.filter(
+            data__range=(inicio_mes, fim_mes),
+        ).count(),
+        "periodos_mensais": periodos_mensais,
+        "meses_fluxo": meses_fluxo,
+        "meses_resultado": meses_resultado,
+        "dados_fluxo": {
+            "cores": [verde, vermelho],
+            "meses": [date_format(item["mes"], "M/y") for item in fluxo],
+            "series": [
+                {"name": "Entradas", "data": [int(item["entradas"] * 100) for item in fluxo]},
+                {"name": "Saídas", "data": [int(item["saidas"] * 100) for item in fluxo]},
+            ],
+        },
+        "dados_resultado": {
+            "cores": [verde],
+            "faixas_cores": [
+                {"from": min(-1, min(valores_resultado)), "to": -1, "color": vermelho},
+            ],
+            "meses": [date_format(item["mes"], "M/y") for item in resultado],
+            "series": [
+                {"name": "Resultado", "data": valores_resultado},
+            ],
+        },
+        "mes_saidas": mes_saidas,
+        "dados_saidas": dados_saidas,
+        "mes_entradas": mes_entradas,
+        "dados_entradas": dados_entradas,
+        "saldos_contas": saldos_contas,
+        "dados_saldos": dados_saldos,
+        "prazos_compromissos": prazos_compromissos,
+        "dias_compromissos": dias_compromissos,
+        "tem_compromissos_em_aberto": any(any(serie["data"]) for serie in series_compromissos),
+        "dados_compromissos": {
+            "cores": [vermelho, verde],
+            "meses": ["Vencidos", "A vencer"],
+            "series": series_compromissos,
+        },
+        "filtros_dashboard": tuple(request.GET.lists()),
     }
 
     return render(

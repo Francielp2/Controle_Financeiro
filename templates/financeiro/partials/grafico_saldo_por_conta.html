@@ -1,0 +1,35 @@
+{% comment %}Base: Traffic sources (demo-pie), da seção Circular charts na demo do Tabler.{% endcomment %}
+<div class="col-12 col-lg-6">
+    <section class="card h-100" aria-labelledby="titulo-saldos">
+        <header class="card-header">
+            <div>
+                <h2 class="card-title" id="titulo-saldos">Saldo por conta</h2>
+                <div class="card-subtitle">Saldo atual total: R$ {{ saldos.total|floatformat:"2g" }}</div>
+            </div>
+        </header>
+        <div class="card-body">
+            {% if dados.series %}
+                <div id="grafico-saldos" class="position-relative" role="img"
+                     aria-label="Pizza proporcional ao valor absoluto do saldo de cada conta"></div>
+                {{ dados|json_script:"dados-saldos" }}
+                <p class="text-secondary small text-center">O tamanho das fatias considera o valor absoluto. O sinal aparece na legenda.</p>
+            {% elif saldos.contas %}
+                <p class="text-secondary">Todas as contas ativas estão com saldo zero.</p>
+            {% else %}
+                <p class="text-secondary mb-0">Nenhuma conta ativa cadastrada.</p>
+            {% endif %}
+
+            {% if saldos.contas %}
+                <ul class="list-unstyled d-flex flex-wrap justify-content-center gap-2 mb-0" aria-label="Saldos por conta">
+                    {% for conta in saldos.contas %}
+                        <li class="legend legend-{{ conta.cor }}">
+                            <span class="legend-dot" aria-hidden="true"></span>
+                            <span class="text-break">{{ conta.conta }}</span>
+                            <span class="legend-value text-nowrap">{{ conta.saldo_formatado }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        </div>
+    </section>
+</div>

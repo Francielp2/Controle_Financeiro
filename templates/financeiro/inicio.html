@@ -1,14 +1,94 @@
 {% extends "base.html" %}
+{% load static %}
 
-{% block title %}Início{% endblock %}
+{% block title %}Dashboard{% endblock %}
 
 {% block content %}
-    <h2>Resumo do sistema</h2>
+    <div class="page-header d-print-none mt-0 mb-3">
+        <div class="row g-2 align-items-center">
+            <div class="col">
+                <div class="page-pretitle text-primary">Resumo financeiro</div>
+                <h1 class="page-title">Dashboard</h1>
+            </div>
+        </div>
+    </div>
 
-    <ul>
-        <li>Contas: {{ quantidade_contas }}</li>
-        <li>Categorias: {{ quantidade_categorias }}</li>
-        <li>Compromissos: {{ quantidade_compromissos }}</li>
-        <li>Movimentações: {{ quantidade_movimentacoes }}</li>
-    </ul>
+    <div class="row row-deck row-cards mb-3">
+        {% include "financeiro/partials/indicador_dashboard.html" with titulo="Contas" valor=quantidade_contas only %}
+        {% include "financeiro/partials/indicador_dashboard.html" with titulo="Categorias" valor=quantidade_categorias only %}
+        {% include "financeiro/partials/indicador_dashboard.html" with titulo="Compromissos" valor=quantidade_compromissos periodo="Este mês" only %}
+        {% include "financeiro/partials/indicador_dashboard.html" with titulo="Movimentações" valor=quantidade_movimentacoes periodo="Este mês" only %}
+    </div>
+
+    {% comment %}Card e seletor baseados em Active subscriptions, da demo horizontal do Tabler.{% endcomment %}
+    <div class="row row-deck row-cards">
+        <div class="col-12 col-lg-6">
+            <section class="card" aria-labelledby="titulo-fluxo">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <h2 class="subheader mb-0" id="titulo-fluxo">Entradas × saídas</h2>
+                        <div class="ms-auto lh-1">
+                            <div class="dropdown">
+                                <button type="button" class="dropdown-toggle text-secondary border-0 bg-transparent p-0"
+                                        id="periodo-fluxo" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Últimos {{ meses_fluxo }} meses
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="periodo-fluxo">
+                                    {% for periodo in periodos_mensais %}
+                                        <a href="{% querystring meses_fluxo=periodo %}#titulo-fluxo"
+                                           class="dropdown-item{% if periodo == meses_fluxo %} active{% endif %}"
+                                           {% if periodo == meses_fluxo %}aria-current="true"{% endif %}>
+                                            Últimos {{ periodo }} meses
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="grafico-fluxo" data-grafico-barras="dados-fluxo" class="position-relative" role="img" aria-label="Entradas e saídas por mês"></div>
+                    {{ dados_fluxo|json_script:"dados-fluxo" }}
+                </div>
+            </section>
+        </div>
+        <div class="col-12 col-lg-6">
+            <section class="card" aria-labelledby="titulo-resultado">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <h2 class="subheader mb-0" id="titulo-resultado">Resultado mensal</h2>
+                        <div class="ms-auto lh-1">
+                            <div class="dropdown">
+                                <button type="button" class="dropdown-toggle text-secondary border-0 bg-transparent p-0"
+                                        id="periodo-resultado" data-bs-toggle="dropdown" aria-expanded="false">
+                                    Últimos {{ meses_resultado }} meses
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="periodo-resultado">
+                                    {% for periodo in periodos_mensais %}
+                                        <a href="{% querystring meses_resultado=periodo %}#titulo-resultado"
+                                           class="dropdown-item{% if periodo == meses_resultado %} active{% endif %}"
+                                           {% if periodo == meses_resultado %}aria-current="true"{% endif %}>
+                                            Últimos {{ periodo }} meses
+                                        </a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="grafico-resultado" data-grafico-barras="dados-resultado" class="position-relative" role="img" aria-label="Diferença entre entradas e saídas por mês"></div>
+                    {{ dados_resultado|json_script:"dados-resultado" }}
+                </div>
+            </section>
+        </div>
+        {% include "financeiro/partials/grafico_por_categoria.html" with tipo="saidas" titulo="Saídas por categoria" mes=mes_saidas dados=dados_saidas mensagem_vazia="Nenhuma saída registrada neste mês." filtros=filtros_dashboard only %}
+        {% include "financeiro/partials/grafico_por_categoria.html" with tipo="entradas" titulo="Entradas por categoria" mes=mes_entradas dados=dados_entradas mensagem_vazia="Nenhuma entrada registrada neste mês." filtros=filtros_dashboard only %}
+        {% include "financeiro/partials/grafico_saldo_por_conta.html" with saldos=saldos_contas dados=dados_saldos only %}
+        {% include "financeiro/partials/grafico_compromissos.html" with prazos=prazos_compromissos dias=dias_compromissos dados=dados_compromissos tem_compromissos=tem_compromissos_em_aberto filtros=request.GET only %}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="{% static 'vendor/apexcharts/apexcharts.min.js' %}" defer></script>
+    <script src="{% static 'financeiro/js/grafico_fluxo.js' %}" defer></script>
+    {% if dados_saldos.series %}
+        <script src="{% static 'financeiro/js/grafico_saldo_por_conta.js' %}" defer></script>
+    {% endif %}
 {% endblock %}

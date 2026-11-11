@@ -48,7 +48,7 @@ Origem: dashboard-horizontal.html, blocos NAVBAR e NAVBAR MENU da demo oficial d
                     <button type="button" class="nav-link d-flex lh-1 p-0 px-2"
                             data-bs-toggle="dropdown" aria-expanded="false"
                             aria-label="Abrir menu da conta">
-                        <span class="avatar avatar-sm">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
+                        <span class="avatar avatar-sm bg-primary-lt">{{ user.first_name|default:user.username|slice:":1"|upper }}</span>
                         <span class="d-none d-xl-block ps-2">{{ user.first_name|default:user.username }}</span>
                     </button>
                     <div class="dropdown-menu dropdown-menu-end">
@@ -73,8 +73,11 @@ Origem: dashboard-horizontal.html, blocos NAVBAR e NAVBAR MENU da demo oficial d
                         <div class="col">
                             <nav aria-label="Menu principal" class="nav-overflow" data-bs-toggle="nav-overflow">
                                 <ul class="navbar-nav">
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="{% url 'financeiro:inicio' %}"><span class="nav-link-title">Início</span></a>
+                                    <li class="nav-item{% if request.resolver_match.view_name == 'financeiro:inicio' %} active{% endif %}">
+                                        <a class="nav-link" href="{% url 'financeiro:inicio' %}"
+                                           {% if request.resolver_match.view_name == 'financeiro:inicio' %}aria-current="page"{% endif %}>
+                                            <span class="nav-link-title">Dashboard</span>
+                                        </a>
                                     </li>
                                     {% if user.is_staff %}
                                         <li class="nav-item">

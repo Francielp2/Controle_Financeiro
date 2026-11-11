@@ -1,11 +1,13 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-br" data-bs-theme-primary="purple">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Controle Financeiro{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/tabler/css/tabler-themes.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tabler-ajustes.css' %}">
 </head>
 <body>
     <script src="{% static 'vendor/tabler/js/tabler-theme.min.js' %}"></script>
@@ -25,5 +27,6 @@
         </div>
     </div>
     <script src="{% static 'vendor/tabler/js/tabler.min.js' %}" defer></script>
+    {% block scripts %}{% endblock %}
 </body>
 </html>

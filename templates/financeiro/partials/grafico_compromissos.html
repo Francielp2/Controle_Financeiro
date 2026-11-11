@@ -1,0 +1,33 @@
+{% comment %}Base: Grouped bars (completion-tasks-8), da página Charts da demo do Tabler.{% endcomment %}
+<div class="col-12 col-lg-6">
+    <section class="card h-100" aria-labelledby="titulo-compromissos">
+        <header class="card-header flex-wrap gap-2">
+            <h2 class="card-title" id="titulo-compromissos">Compromissos em aberto</h2>
+            <div class="dropdown ms-auto">
+                <button type="button" class="dropdown-toggle text-secondary border-0 bg-transparent p-0"
+                        id="prazo-compromissos" data-bs-toggle="dropdown" aria-expanded="false">
+                    Próximos {{ dias }} dias
+                </button>
+                <div class="dropdown-menu dropdown-menu-end" aria-labelledby="prazo-compromissos">
+                    {% for prazo in prazos %}
+                        <a href="{% querystring filtros dias_compromissos=prazo %}#titulo-compromissos"
+                           class="dropdown-item{% if prazo == dias %} active{% endif %}"
+                           {% if prazo == dias %}aria-current="true"{% endif %}>
+                            Próximos {{ prazo }} dias
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </header>
+        <div class="card-body">
+            {% if tem_compromissos %}
+                <p class="text-secondary small mb-0">Valores restantes de todos os vencidos e dos que vencem de hoje até o prazo selecionado.</p>
+                <div id="grafico-compromissos" data-grafico-barras="dados-compromissos" class="position-relative"
+                     role="img" aria-label="Valores a pagar e a receber, separados em vencidos e a vencer"></div>
+                {{ dados|json_script:"dados-compromissos" }}
+            {% else %}
+                <p class="text-secondary mb-0">Nenhum compromisso vencido ou a vencer no prazo selecionado.</p>
+            {% endif %}
+        </div>
+    </section>
+</div>

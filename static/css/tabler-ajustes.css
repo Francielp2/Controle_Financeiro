@@ -1,0 +1,10 @@
+html[data-bs-theme="dark"] {
+    color-scheme: dark;
+    --tblr-body-bg: color-mix(in oklab, var(--tblr-gray-900) 65%, var(--tblr-gray-950));
+}
+
+html:not([data-bs-theme="dark"]) {
+    --tblr-body-color: var(--tblr-gray-800);
+    --tblr-secondary: var(--tblr-gray-600);
+    --tblr-muted: var(--tblr-gray-600);
+}

@@ -2,6 +2,7 @@
 # Não houve revisão humana individual de todos os casos.
 # Sua aprovação não garante ausência de defeitos; revise-os ao mudar as regras.
 import json
+from datetime import date
 from unittest.mock import patch
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -112,6 +113,150 @@ class ViewsTests(DadosMixin, TestCase):
             with self.subTest(nome=nome):
                 self.assertEqual(set(self.client.get(reverse(f"financeiro:{nome}_listar")).context[chave]), esperado)
         self.assertEqual(self.client.get(reverse("financeiro:inicio")).context["quantidade_contas"], 2)
+
+    def test_dashboard_filtra_fluxo_por_periodo_e_usuario(self):
+        self.movimento()
+        self.movimento(usuario=self.outro, conta_origem=None, conta_destino=self.alheia,
+                       categoria=None, tipo="ENTRADA", valor=50)
+        url = reverse("financeiro:inicio")
+        resposta = self.client.get(url, {"meses_fluxo": "3"})
+        dados = resposta.context["dados_fluxo"]
+        self.assertEqual(len(dados["meses"]), 3)
+        self.assertEqual(dados["series"], [
+            {"name": "Entradas", "data": [0, 0, 0]},
+            {"name": "Saídas", "data": [0, 0, 2000]},
+        ])
+        self.assertContains(resposta, 'id="dados-fluxo" type="application/json"')
+        self.assertEqual(self.client.get(url, {"meses_fluxo": "999"}).context["meses_fluxo"], 6)
+
+    def test_dashboard_calcula_resultado_com_periodo_proprio(self):
+        self.movimento()
+        self.movimento(tipo="ENTRADA", conta_origem=None, conta_destino=self.conta,
+                       categoria=self.entrada, valor=12)
+        resposta = self.client.get(reverse("financeiro:inicio"), {
+            "meses_fluxo": "3", "meses_resultado": "12",
+        })
+        self.assertEqual(resposta.context["meses_fluxo"], 3)
+        dados = resposta.context["dados_resultado"]
+        self.assertEqual(len(dados["meses"]), 12)
+        self.assertEqual(dados["series"], [{"name": "Resultado", "data": [0] * 11 + [-800]}])
+        self.assertEqual(dados["faixas_cores"], [{"from": -800, "to": -1, "color": "var(--tblr-red)"}])
+        self.assertContains(resposta, 'id="dados-resultado" type="application/json"')
+        for meses in (3, 6, 12):
+            self.assertContains(resposta, f'?meses_fluxo=3&amp;meses_resultado={meses}#titulo-resultado')
+
+    def test_dashboard_conta_compromissos_e_movimentacoes_do_mes_atual(self):
+        self.compromisso()
+        self.compromisso(data_vencimento=date(2024, 2, 29))
+        self.compromisso(data_vencimento=date(2024, 4, 1))
+        self.movimento()
+        self.movimento(data=date(2024, 2, 29))
+
+        resposta = self.client.get(reverse("financeiro:inicio"), {"mes_saidas": "2024-02"})
+        self.assertEqual(resposta.context["quantidade_compromissos"], 1)
+        self.assertEqual(resposta.context["quantidade_movimentacoes"], 1)
+        self.assertContains(resposta, "Este mês", count=2)
+
+    def test_dashboard_saidas_por_categoria_de_um_mes(self):
+        fevereiro = date(2024, 2, 29)
+        self.movimento(data=fevereiro, valor=25)
+        self.movimento(data=fevereiro, valor=5)
+        self.movimento()
+        self.movimento(tipo="ENTRADA", conta_origem=None, conta_destino=self.conta,
+                       categoria=self.entrada, data=fevereiro, valor=12)
+        self.movimento(usuario=self.outro, conta_origem=self.alheia, categoria=None,
+                       data=fevereiro, valor=8)
+        url = reverse("financeiro:inicio")
+
+        resposta = self.client.get(url, {"mes_saidas": "2024-02", "meses_fluxo": "3"})
+        dados = resposta.context["dados_saidas"]
+        self.assertEqual(dados["categorias"], [self.cat.nome])
+        self.assertEqual(dados["series"], [{"name": "Saídas", "data": [3000]}])
+        self.assertTrue(dados["horizontal"])
+        self.assertContains(resposta, 'name="mes_saidas" value="2024-02"')
+        self.assertContains(resposta, 'name="meses_fluxo" value="3"')
+
+        mes_invalido = self.client.get(url, {"mes_saidas": "2024-13"})
+        self.assertEqual(mes_invalido.context["mes_saidas"], "2024-03")
+        mes_vazio = self.client.get(url, {"mes_saidas": "2024-01"})
+        self.assertContains(mes_vazio, "Nenhuma saída registrada neste mês.")
+
+    def test_dashboard_entradas_por_categoria_com_mes_independente(self):
+        fevereiro = date(2024, 2, 29)
+        self.movimento(tipo="ENTRADA", conta_origem=None, conta_destino=self.conta,
+                       categoria=self.entrada, data=fevereiro, valor=12)
+        self.movimento(tipo="ENTRADA", conta_origem=None, conta_destino=self.conta,
+                       categoria=self.entrada, valor=40)
+        self.movimento(usuario=self.outro, tipo="ENTRADA", conta_origem=None,
+                       conta_destino=self.alheia, categoria=None, data=fevereiro, valor=50)
+        self.movimento()
+        url = reverse("financeiro:inicio")
+
+        resposta = self.client.get(url, {"mes_entradas": "2024-02", "mes_saidas": "2024-03"})
+        dados = resposta.context["dados_entradas"]
+        self.assertTrue(dados["horizontal"])
+        self.assertEqual(dados["categorias"], [self.entrada.nome])
+        self.assertEqual(dados["series"], [{"name": "Entradas", "data": [1200]}])
+        self.assertEqual(resposta.context["dados_saidas"]["series"], [{"name": "Saídas", "data": [2000]}])
+        self.assertContains(resposta, 'id="dados-entradas" type="application/json"')
+        self.assertContains(resposta, 'type="hidden" name="mes_saidas" value="2024-03"')
+        self.assertContains(resposta, 'type="hidden" name="mes_entradas" value="2024-02"')
+
+    def test_dashboard_pizza_preserva_saldos_com_sinal_na_legenda(self):
+        self.movimento(valor=150)
+        Conta.objects.create(usuario=self.u, nome="Carteira", tipo="CORRENTE", saldo_inicial=100)
+        Conta.objects.create(usuario=self.u, nome="Conta inativa", tipo="CORRENTE", saldo_inicial=90, ativa=False)
+        self.alheia.saldo_inicial = 500
+        self.alheia.save()
+        resposta = self.client.get(reverse("financeiro:inicio"))
+
+        saldos = resposta.context["saldos_contas"]
+        self.assertEqual(saldos["total"], 50)
+        self.assertEqual([(conta["conta"], conta["saldo"]) for conta in saldos["contas"]], [
+            ("Carteira", 100), ("Principal", -50), ("Reserva", 0),
+        ])
+        self.assertEqual(resposta.context["dados_saldos"], {
+            "series": [10000, 5000], "cores": ["var(--tblr-primary)", "var(--tblr-red)"],
+            "detalhes": [{"conta": "Carteira", "saldo": "R$ 100,00"},
+                         {"conta": "Principal", "saldo": "R$ -50,00"}],
+        })
+        self.assertContains(resposta, 'id="dados-saldos" type="application/json"')
+        self.assertContains(resposta, "R$ -50,00")
+
+    def test_dashboard_pizza_sem_saldos_diferentes_de_zero(self):
+        self.movimento(valor=100)
+        resposta = self.client.get(reverse("financeiro:inicio"))
+        self.assertContains(resposta, "Todas as contas ativas estão com saldo zero.")
+        self.assertNotContains(resposta, 'id="dados-saldos"')
+
+    def test_dashboard_compromissos_soma_restante_por_tipo_e_prazo(self):
+        self.compromisso(data_vencimento=date(2024, 2, 29), valor_total="100.25",
+                         valor_pago_recebido_inicial="10.10")
+        self.compromisso(tipo="RECEBER", categoria=self.entrada, valor_total=70)
+        self.compromisso(data_vencimento=date(2024, 3, 16), valor_total=50)
+        self.compromisso(data_vencimento=date(2024, 3, 17), valor_total=80)
+        self.compromisso(data_vencimento=date(2024, 2, 29), valor_pago_recebido_inicial=100)
+        self.compromisso(usuario=self.outro, conta=self.alheia, categoria=None)
+        url = reverse("financeiro:inicio")
+
+        resposta = self.client.get(url, {"dias_compromissos": "15", "meses_fluxo": "3"})
+        dados = resposta.context["dados_compromissos"]
+        self.assertEqual(dados["meses"], ["Vencidos", "A vencer"])
+        self.assertEqual(dados["series"], [
+            {"name": "A pagar", "data": [9015, 4000]},
+            {"name": "A receber", "data": [0, 6000]},
+        ])
+        self.assertContains(resposta, 'id="dados-compromissos" type="application/json"')
+        self.assertContains(resposta, '?dias_compromissos=30&amp;meses_fluxo=3#titulo-compromissos')
+
+        prazo_invalido = self.client.get(url, {"dias_compromissos": "-1"})
+        self.assertEqual(prazo_invalido.context["dias_compromissos"], 7)
+        self.assertEqual(prazo_invalido.context["dados_compromissos"]["series"][0]["data"], [9015, 0])
+
+    def test_dashboard_compromissos_sem_valores_em_aberto(self):
+        resposta = self.client.get(reverse("financeiro:inicio"))
+        self.assertContains(resposta, "Nenhum compromisso vencido ou a vencer no prazo selecionado.")
+        self.assertNotContains(resposta, 'id="dados-compromissos"')
 
     def test_movimento_criar_editar_excluir(self):
         """Fluxo HTTP grava uma vez, edita valor e exclui restaurando o saldo."""

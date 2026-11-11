@@ -1,0 +1,32 @@
+{% comment %}Base: Horizontal bars (completion-tasks-6), na página Charts da demo do Tabler.{% endcomment %}
+{% with titulo_id="titulo-"|add:tipo mes_id="mes-"|add:tipo mes_nome="mes_"|add:tipo dados_id="dados-"|add:tipo %}
+<div class="col-12 col-lg-6">
+    <section class="card h-100" aria-labelledby="{{ titulo_id }}">
+        <header class="card-header flex-wrap gap-2">
+            <h2 class="card-title" id="{{ titulo_id }}">{{ titulo }}</h2>
+            <form method="get" action="#{{ titulo_id }}" class="ms-auto d-flex flex-wrap align-items-center gap-2">
+                {% for chave, valores in filtros %}
+                    {% if chave != mes_nome %}
+                        {% for valor in valores %}
+                            <input type="hidden" name="{{ chave }}" value="{{ valor }}">
+                        {% endfor %}
+                    {% endif %}
+                {% endfor %}
+                <label for="{{ mes_id }}" class="visually-hidden">Mês do gráfico {{ titulo }}</label>
+                <input type="month" class="form-control form-control-sm w-auto" id="{{ mes_id }}"
+                       name="{{ mes_nome }}" value="{{ mes }}" required>
+                <button class="btn btn-outline-secondary btn-sm" type="submit">Aplicar</button>
+            </form>
+        </header>
+        <div class="card-body">
+            {% if dados.categorias %}
+                <div id="grafico-{{ tipo }}" data-grafico-barras="{{ dados_id }}" class="position-relative"
+                     role="img" aria-label="{{ titulo }} no mês selecionado"></div>
+                {{ dados|json_script:dados_id }}
+            {% else %}
+                <p class="text-secondary mb-0">{{ mensagem_vazia }}</p>
+            {% endif %}
+        </div>
+    </section>
+</div>
+{% endwith %}
