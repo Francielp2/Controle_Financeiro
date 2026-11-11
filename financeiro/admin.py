@@ -148,7 +148,13 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
         campos = tuple(super().get_readonly_fields(request, obj))
 
         if obj is not None and obj.movimentacoes.exists():
-            campos += ("valor_pago_recebido_inicial",)
+            campos += (
+                "usuario",
+                "tipo",
+                "conta",
+                "categoria",
+                "valor_pago_recebido_inicial",
+            )
 
         return campos
 

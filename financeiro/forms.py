@@ -78,7 +78,19 @@ class CompromissoFinanceiroForm(forms.ModelForm):
             self.fields["categoria"].queryset = categorias
 
         if self.instance.pk and self.instance.movimentacoes.exists():
-            self.fields["valor_pago_recebido_inicial"].disabled = True
+            campos_bloqueados = (
+                "tipo",
+                "conta",
+                "categoria",
+                "valor_pago_recebido_inicial",
+            )
+
+            for campo in campos_bloqueados:
+                self.fields[campo].disabled = True
+                self.fields[campo].help_text = (
+                    "Este campo não pode ser alterado porque existem movimentações vinculadas ao compromisso"
+                )
+                
 
     class Meta:
         model = CompromissoFinanceiro

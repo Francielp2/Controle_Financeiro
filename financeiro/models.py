@@ -403,9 +403,42 @@ class CompromissoFinanceiro(models.Model):
                 {"categoria": "Não é possível usar uma categoria inativa em novo compromisso."}
             )
 
+    # BLOQUEIA ALTERAÇÕES QUE COMPROMETEM REGISTROS VINCULADOS
+
+    def validar_alteracoes_com_vinculos(self):
+        if not self.pk or not self.movimentacoes.exists():
+            return
+
+        compromisso_anterior = (
+            CompromissoFinanceiro.objects.filter(pk=self.pk).first()
+        )
+
+        if compromisso_anterior is None:
+            return
+
+        campos_bloqueados = (
+            ("usuario_id", "O proprietário"),
+            ("tipo", "O tipo"),
+            ("conta_id", "A conta"),
+            ("categoria_id", "A categoria"),
+        )
+
+        erros = []
+
+        for campo, nome in campos_bloqueados:
+            if getattr(self, campo) != getattr(compromisso_anterior, campo):
+                erros.append(
+                    f"{nome} não pode ser alterado porque existem movimentações relacionadas ao compromisso")
+
+        if erros:
+            raise ValidationError(erros)
+
     # VALIDA REGRAS DO COMPROMISSO
+
     def clean(self):
         super().clean()
+
+        self.validar_alteracoes_com_vinculos()
 
         if self.valor_total is not None and self.valor_total <= 0:
             raise ValidationError(
