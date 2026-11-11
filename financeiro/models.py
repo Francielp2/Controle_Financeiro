@@ -8,6 +8,8 @@ from django.utils import timezone
 
 from usuarios.models import Usuario
 
+def dinheiro(valor):
+    return (valor or Decimal("0.00")).quantize(Decimal("0.01"))
 
 # MODELO DE CONTA FINANCEIRA
 class Conta(models.Model):
@@ -67,7 +69,7 @@ class Conta(models.Model):
             or Decimal("0.00")
         )
 
-        return self.saldo_inicial + entradas - saidas
+        return dinheiro(self.saldo_inicial + entradas - saidas)
 
     # VERIFICA SE A CONTA POSSUI MOVIMENTACOES
     def possui_movimentacoes(self):

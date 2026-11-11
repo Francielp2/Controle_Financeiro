@@ -1,10 +1,9 @@
 from datetime import timedelta
-from decimal import Decimal
 import calendar
 from django.db.models import F, Q, Sum
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
-from .models import Movimentacao, CompromissoFinanceiro, Conta
+from .models import Movimentacao, CompromissoFinanceiro, Conta, dinheiro
 
 
 def periodo_do_mes(data=None):
@@ -74,13 +73,13 @@ def resumo_periodo(usuario, inicio, fim):
             filter=Q(tipo=Movimentacao.Tipo.SAIDA)),
     )
 
-    entradas = resumo["entradas"] or Decimal("0")
-    saidas = resumo["saidas"] or Decimal("0")
+    entradas = dinheiro(resumo["entradas"])
+    saidas = dinheiro(resumo["saidas"])
 
     return {
         "entradas": entradas,
         "saidas": saidas,
-        "resultado": entradas - saidas,
+        "resultado": dinheiro(entradas - saidas),
     }
 
 
@@ -91,10 +90,10 @@ def saldo_por_conta(usuario):
     )
 
     contas = []
-    total = Decimal("0")
+    total = dinheiro(0)
 
     for conta in contas_ativas:
-        saldo = conta.saldo_atual
+        saldo = dinheiro(conta.saldo_atual)
 
         contas.append({
             "conta": conta.nome,
@@ -106,7 +105,7 @@ def saldo_por_conta(usuario):
 
     return {
         "contas": contas,
-        "total": total,
+        "total": dinheiro(total),
     }
 
 
@@ -127,7 +126,7 @@ def totais_por_categoria(usuario, inicio, fim, tipo):
     return [
         {
             "categoria":  item["categoria__nome"] or "Sem categoria",
-            "total": item["total"],
+            "total": dinheiro(item["total"]),
         }
         for item in dados
     ]
@@ -169,8 +168,8 @@ def evolucao_mensal(usuario, meses=6):
 
     totais = {
         item["mes"]: {
-            "entradas": item["entradas"] or Decimal("0"),
-            "saidas": item["saidas"] or Decimal("0")
+            "entradas": dinheiro(item["entradas"]),
+            "saidas": dinheiro(item["saidas"]),
         }
         for item in dados
     }
@@ -191,16 +190,16 @@ def evolucao_mensal(usuario, meses=6):
         valores = totais.get(
             data_mes,
             {
-                "entradas": Decimal("0"),
-                "saidas": Decimal("0")
+                "entradas": dinheiro(0),
+                "saidas": dinheiro(0),
             },
         )
 
         resultado.append({
             "mes": data_mes,
-            "entradas": valores["entradas"],
-            "saidas": valores["saidas"],
-            "resultado": valores["entradas"] - valores["saidas"],
+            "entradas": dinheiro(valores["entradas"]),
+            "saidas": dinheiro(valores["saidas"]),
+            "resultado": dinheiro(valores["entradas"] - valores["saidas"]),
         })
 
     return resultado
