@@ -6,6 +6,7 @@ from .models import (
     CompromissoFinanceiro,
     Movimentacao,
 )
+from django.db import transaction
 
 
 # ADMINISTRACAO DE CONTAS
@@ -122,7 +123,7 @@ class CompromissoFinanceiroAdmin(admin.ModelAdmin):
         if obj is not None and obj.movimentacoes.exists():
             campos += ("valor_pago_recebido_inicial",)
 
-            return campos
+        return campos
 
 
 @admin.register(Movimentacao)
@@ -172,3 +173,9 @@ class MovimentacaoAdmin(admin.ModelAdmin):
         "-data",
         "-hora",
     )
+
+    # Exclui movimentações em lote recalculando os compromissos relacionados
+    def delete_queryset(self, request, queryset):
+        with transaction.atomic():
+            for movimentacao in queryset:
+                movimentacao.delete()
